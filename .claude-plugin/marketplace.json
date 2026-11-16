@@ -1,0 +1,16 @@
+{
+  "name": "nextq",
+  "description": "Next Quarter skills for Claude: integrated business planning, supply chain and finance.",
+  "owner": {
+    "name": "Next Quarter",
+    "url": "https://nextq.ai"
+  },
+  "plugins": [
+    {
+      "name": "nextq-demand-planning",
+      "source": "./plugins/nextq-demand-planning",
+      "description": "25 auditable demand planning, forecasting, sensing and inventory skills for supply chain, S&OP and IBP teams.",
+      "category": "productivity"
+    }
+  ]
+}

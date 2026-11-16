@@ -1,0 +1,23 @@
+{
+  "name": "nextq-demand-planning",
+  "displayName": "Next Quarter Demand Planning & Forecasting",
+  "version": "1.0.0",
+  "description": "25 auditable demand planning, forecasting, sensing and inventory skills for supply chain, S&OP and IBP teams, governed by the Next Quarter Supply Chain Gold Standard.",
+  "author": {
+    "name": "Next Quarter",
+    "url": "https://nextq.ai"
+  },
+  "homepage": "https://nextq.ai",
+  "repository": "https://github.com/forecastera/nextq-skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "demand-planning",
+    "forecasting",
+    "supply-chain",
+    "s&op",
+    "ibp",
+    "inventory",
+    "safety-stock",
+    "fp&a"
+  ]
+}

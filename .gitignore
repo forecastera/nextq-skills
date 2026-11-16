@@ -1,0 +1,11 @@
+# OS junk (the Claude directory validator blocks these)
+.DS_Store
+Thumbs.db
+desktop.ini
+__MACOSX/
+
+# Build outputs and secrets
+dist/
+*.zip
+.env
+.env.*
