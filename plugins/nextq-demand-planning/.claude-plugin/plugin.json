@@ -10,6 +10,9 @@
   "homepage": "https://nextq.ai",
   "repository": "https://github.com/forecastera/nextq-skills",
   "license": "Apache-2.0",
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/forecastera/nextq-skills/tree/main/plugins/nextq-demand-planning",
+  "supportUrl": "https://github.com/forecastera/nextq-skills/issues",
   "keywords": [
     "demand-planning",
     "forecasting",
