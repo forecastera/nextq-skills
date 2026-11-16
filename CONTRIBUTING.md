@@ -38,4 +38,5 @@
 - **No secrets, credentials, customer data or real PII** anywhere, including examples. Use synthetic data.
 - Names must not start with `claude-` or `anthropic-`, and must not call the plugin "official".
 - Only text files in plugin folders. No symlinks, binaries, `.DS_Store` or `Thumbs.db`.
+- Anthropic's security scanner reads skill text like shell code. In formulas, write multi-letter names as `$\mathit{SS}=...$`, not `$SS=...$`, and don't use bare shell words such as `export`, `env` or `printenv` as labels. Otherwise the scan puts the plugin on hold. `claude plugin validate` does not run this check; only the portal does.
 - A skill must work on its own. Inline the rules it relies on and do not point at files outside its folder.
