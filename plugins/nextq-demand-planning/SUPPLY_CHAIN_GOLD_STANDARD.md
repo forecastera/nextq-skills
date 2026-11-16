@@ -144,12 +144,12 @@ Recorded sales equal $\min(D_t, \text{available}_t)$. Training on raw sales duri
 
 ### GS-M-13 Safety stock: Fill-rate (β) target [STD]
 - Unit normal loss function: $G(k)=\phi(k)-k\,[1-\Phi(k)]$
-- **(s, Q) policy:** $\beta = 1-\dfrac{\sigma_{DL}\,G(k)}{Q}$. Solve $G(k) = (1-\beta)Q/\sigma_{DL}$ for $k$, then $SS=k\sigma_{DL}$.
+- **(s, Q) policy:** $\beta = 1-\dfrac{\sigma_{DL}\,G(k)}{Q}$. Solve $G(k) = (1-\beta)Q/\sigma_{DL}$ for $k$, then $\mathit{SS}=k\sigma_{DL}$.
 - **(R, S) policy:** $\beta = 1-\dfrac{\sigma_{R+L}\,G(k)}{\bar d R}$
 - When $k<0$ results (large Q), SS may be negative. Floor it at the policy minimum and report it. Never equate CSL and fill rate; the same $k$ yields different values of each.
 
 ### GS-M-14 Newsvendor / single-period [STD]
-- Critical ratio $CR = \dfrac{C_u}{C_u + C_o}$, where $C_u$ is underage cost (lost margin plus goodwill) and $C_o$ is overage cost (cost − salvage + holding).
+- Critical ratio $\mathit{CR} = \dfrac{C_u}{C_u + C_o}$, where $C_u$ is underage cost (lost margin plus goodwill) and $C_o$ is overage cost (cost − salvage + holding).
 - Optimal quantity $Q^* = F^{-1}(CR)$ from the forecast distribution.
 - Use for seasonal, perishable, or one-shot buys, and for setting quantile targets (GS-M-10).
 
@@ -239,13 +239,13 @@ All coherent methods take the form $\tilde y_h = S G \hat y_h$, where $S$ is the
 | Method | G / rule | Use when | Caveat |
 |---|---|---|---|
 | **Bottom-up** | Forecast at the bottom level and sum | Bottom series have strong signal | Noisy at sparse bottoms |
-| **Top-down** | Disaggregate the total by proportions $p_j$: average historical proportions $p_j=\frac1T\sum_t y_{j,t}/y_t$, proportions of historical averages, or **forecast proportions** (default) | Very sparse bottoms, low counts | **Always biased** (fails $SGS=S$) |
+| **Top-down** | Disaggregate the total by proportions $p_j$: average historical proportions $p_j=\frac1T\sum_t y_{j,t}/y_t$, proportions of historical averages, or **forecast proportions** (default) | Very sparse bottoms, low counts | **Always biased** (fails $S G S=S$) |
 | **Middle-out** | Forecast a middle level, sum it upward, and apply top-down below it | Strictly hierarchical structures with a reliable middle level | Same top-down bias below the middle |
 | **MinT** (GS-D-08) | Optimal combination using all levels | **Default** for production | Needs a residual covariance estimate |
 
 ### GS-D-08 MinT (Wickramasuriya, Athanasopoulos & Hyndman 2019) [STD]
 $$\tilde{\boldsymbol y}_h=\boldsymbol S(\boldsymbol S'\boldsymbol W_h^{-1}\boldsymbol S)^{-1}\boldsymbol S'\boldsymbol W_h^{-1}\hat{\boldsymbol y}_h$$
-This minimizes $\operatorname{tr}(\boldsymbol V_h)$ subject to $SGS=S$. Choose $W_h$ in this priority order:
+This minimizes $\operatorname{tr}(\boldsymbol V_h)$ subject to $S G S=S$. Choose $W_h$ in this priority order:
 1. **`mint_shrink`** (shrinkage covariance; default when $m$ is large relative to $T$)
 2. `wls_var` (diagonal residual variances)
 3. `wls_struct` ($\Lambda=\text{diag}(S\mathbf 1)$; use when residuals are not available, for example for judgmental bases)

@@ -32,9 +32,9 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-12** CSL policies [STD] | $k=\Phi^{-1}(\text{CSL})$, $\sigma_{DL}=\sqrt{\bar L\sigma_d^2+\bar d^2\sigma_L^2}$, $SS=k\sigma_{DL}$, $ROP=\bar d\bar L+SS$. Periodic review (R, S): the protection interval is $R+L$, so $S=\bar d(R+L)+SS_{R+L}$. $\sigma_d$ = forecast-error σ at lag and bucket, not demand σ. No normal-k for intermittent or count items, or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. **SS values come from `nextq-safety-stock-optimization`; they are not recomputed here.** |
+| **GS-M-12** CSL policies [STD] | $k=\Phi^{-1}(\text{CSL})$, $\sigma_{DL}=\sqrt{\bar L\sigma_d^2+\bar d^2\sigma_L^2}$, $\mathit{SS}=k\sigma_{DL}$, $\mathit{ROP}=\bar d\bar L+SS$. Periodic review (R, S): the protection interval is $R+L$, so $S=\bar d(R+L)+SS_{R+L}$. $\sigma_d$ = forecast-error σ at lag and bucket, not demand σ. No normal-k for intermittent or count items, or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. **SS values come from `nextq-safety-stock-optimization`; they are not recomputed here.** |
 | **GS-M-13** Fill rate [STD] | $G(k)=\phi(k)-k[1-\Phi(k)]$. (s, Q): $\beta=1-\sigma_{DL}G(k)/Q$. (R, S): $\beta=1-\sigma_{R+L}G(k)/(\bar dR)$. A negative $k$ is floored and reported. **CSL ≠ fill rate:** both are reported for every policy. |
-| **GS-M-14** Newsvendor [STD] | Critical ratio $CR=C_u/(C_u+C_o)$, with $C_u$ = lost margin + goodwill and $C_o$ = cost − salvage + holding. $Q^*=F^{-1}(CR)$ from the forecast **distribution** (Poisson / NB / empirical for counts). Used for seasonal, perishable and one-shot buys. Report expected leftover $E[(Q-D)^+]$, expected shortage $E[(D-Q)^+]$ and fill rate $1-E[(D-Q)^+]/E[D]$. |
+| **GS-M-14** Newsvendor [STD] | Critical ratio $\mathit{CR}=C_u/(C_u+C_o)$, with $C_u$ = lost margin + goodwill and $C_o$ = cost − salvage + holding. $Q^*=F^{-1}(CR)$ from the forecast **distribution** (Poisson / NB / empirical for counts). Used for seasonal, perishable and one-shot buys. Report expected leftover $E[(Q-D)^+]$, expected shortage $E[(D-Q)^+]$ and fill rate $1-E[(D-Q)^+]/E[D]$. |
 | **GS-M-10** Probabilistic | Policies are evaluated on simulated demand paths. Lead-time totals come from summed paths, never summed quantiles. |
 | **GS-K-08 / GS-K-09** | CSL = cycles without stockout / cycles (cycle qualifier always stated). Unit fill rate = units filled from on-hand at the time of demand / units demanded (unconstrained). |
 | **GS-K-11** DOS | Average on-hand from the simulation is converted to **forward** days of supply against the forecast (stated as forward, on-hand only). |
@@ -52,7 +52,7 @@ metadata:
 | Otherwise | (R, S), with R = the review calendar rounded from EOQ/D |
 
 **Order quantity:**
-- $EOQ=\sqrt{2DK/h}$, with $h$ = holding rate × unit cost.
+- $\mathit{EOQ}=\sqrt{2DK/h}$, with $h$ = holding rate × unit cost.
 - Rounded up to the pack multiple and to at least the MOQ.
 - Capped at the shelf-life quantity (max days × daily forecast). If the MOQ exceeds the cap → `MOQ_EXCEEDS_SHELF_LIFE`.
 - (s, S): $S=s+Q_{EOQ}$ [RoT].
@@ -90,7 +90,7 @@ metadata:
 4. **Simulate** with seeded demand paths (forecast ± error σ, using the same distribution route as the SS skill: normal, Poisson/NB, or gamma/empirical) and lead-time draws. Record CSL, fill rate, average on-hand, orders and stockout units.
 5. **Search** if service < target − 0.5 pp: bisect $s$ (or $S$) on common random paths, and record the simulated level that replaces the closed form (`SIM_ADJUSTED`).
 6. **Newsvendor:**
-   - $CR=C_u/(C_u+C_o)$ and $Q^*=F^{-1}(CR)$.
+   - $\mathit{CR}=C_u/(C_u+C_o)$ and $Q^*=F^{-1}(CR)$.
    - Report leftover, shortage and fill rate.
    - Multi-store buys are allocated by store forecast shares, and the sum of rounded store quantities must equal $Q^*$ (largest remainder).
 7. **Cost:** ordering $= \text{orders/yr}\times K$; holding $= \bar I\times c\times h$. Shortage is treated as a **service constraint**, not a cost, unless the user supplies a shortage cost.

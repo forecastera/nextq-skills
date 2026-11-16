@@ -37,7 +37,7 @@ Every other nextq skill that changes buckets calls this skill's rules (e.g. `nex
 |---|---|
 | **GS-D-09** Time-bucket alignment | **Single fiscal calendar table** (`date → fiscal_week, fiscal_period, fiscal_quarter, fiscal_year, days_in_period, trading_days`); all skills join to it. **Daily → weekly:** sum the days within the fiscal week; the week-ending day is explicit (e.g. Saturday). **Weekly → calendar month:** apportion by day count; weeks spanning months are split by days in each month, optionally weighted by a day-of-week profile, never assigned wholesale. **Monthly S&OP → weekly:** disaggregate by a weekly or daily profile (proportions), then reconcile (temporal hierarchies, Athanasopoulos et al. 2017). Compare unequal periods on **per-day or per-week rates**, never raw totals. |
 | **GS-D-10** 4-4-5 & 53-week | In 4-4-5 / 4-5-4 / 5-4-4 calendars, quarters are 13 weeks and a year is 52 weeks (364 days). A **53rd week** is inserted periodically (roughly every 5–6 years). Year-over-year and seasonal-naïve comparisons must align **like weeks** (restated year) and handle week 53 explicitly: drop it, merge it, or model it with a dummy. Moving holidays (Easter, Lunar New Year, Diwali, Eid) need event dummies. |
-| **GS-D-08** Reconciliation | Coherent forecasts $\tilde y=SG\hat y$. Use WLS with structural scaling $W=\operatorname{diag}(S\mathbf 1)$ when residual covariances are unavailable. Unbiasedness requires $SGS=S$ (asserted). Fuller MinT variants are in `nextq-hierarchical-forecast-reconciliation`. |
+| **GS-D-08** Reconciliation | Coherent forecasts $\tilde y=SG\hat y$. Use WLS with structural scaling $W=\operatorname{diag}(S\mathbf 1)$ when residual covariances are unavailable. Unbiasedness requires $S G S=S$ (asserted). Fuller MinT variants are in `nextq-hierarchical-forecast-reconciliation`. |
 | **GS-G-11** Verification | Every conversion conserves totals to $10^{-9}$ relative. Hierarchy sums satisfy $\lvert\text{parent}-\sum\text{children}\rvert\le10^{-6}$ relative. The calendar is contiguous, with no overlaps, every week 7 days, and one week-ending weekday. |
 | **GS-G-10 / GS-D-13** | Standard output; every re-bucketing is logged with its method and profile version. |
 
@@ -79,7 +79,7 @@ Every other nextq skill that changes buckets calls this skill's rules (e.g. `nex
 6. **Year-over-year:** build the like-week map with the declared policy. Moving holidays are compared on event-relative weeks (event week −1, 0, +1) and flagged when they change periods across years.
 7. **Temporal reconciliation:**
    - When forecasts exist at several nested fiscal grains (weekly, period, quarter), build $S$ for the quarter pattern and reconcile with WLS-structural.
-   - Assert coherence and $SGS=S$.
+   - Assert coherence and $S G S=S$.
    - Calendar-month views are derived **after** reconciliation by day-share apportionment.
 8. **Log** the method, profile version and conservation residuals. **Output** (Section 6).
 
@@ -179,7 +179,7 @@ def reconcile_wls_struct(S, yhat):
 - **Like weeks:** prior year with 53 weeks, `SHIFT` → week 1 ↔ prior week 2, week 52 ↔ prior week 53. Current week 53 under `DROP` → no comparator.
 - **Temporal reconciliation** (4-5-4 quarter): base quarter 1,400, periods 420 / 560 / 430, 13 weeks × 100 (sum 1,300).
   - WLS-structural gives quarter **1,370**, periods 414.6 / 535.8 / 419.6, weeks summing to 1,370.
-  - Coherent, and $SGS=S$ holds.
+  - Coherent, and $S G S=S$ holds.
 
 ```sql
 -- Calendar integrity checks (each query must return zero rows)

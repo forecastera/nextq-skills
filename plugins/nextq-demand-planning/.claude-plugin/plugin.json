@@ -1,7 +1,7 @@
 {
   "name": "nextq-demand-planning",
   "displayName": "Next Quarter Demand Planning & Forecasting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "25 auditable demand planning, forecasting, sensing and inventory skills for supply chain, S&OP and IBP teams, governed by the Next Quarter Supply Chain Gold Standard.",
   "author": {
     "name": "Next Quarter",

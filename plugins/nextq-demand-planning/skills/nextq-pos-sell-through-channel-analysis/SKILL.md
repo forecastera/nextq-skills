@@ -80,7 +80,7 @@ metadata:
    - Backward WOS = inventory / mean of the last 4 weeks of sell-out, labeled.
    - Status from forward WOS vs. target ± 1 week: `CHANNEL_BUILD`, `ON_TARGET` or `CHANNEL_BURN`.
 6. **Transit lag** $\tau$ = the lag in 0–4 weeks that maximizes the correlation of first-differenced sell-in with first-differenced sell-out shifted by $\tau$. Report the correlation; below 0.2, use the contractual lead time and flag `LAG_ASSUMED` [RoT].
-7. **Bullwhip.** $BW=\operatorname{Var}(\Delta\text{SellIn}_t)/\operatorname{Var}(\Delta\text{SellOut}_{t+\tau})$ with the block-bootstrap CI. $BW > 1$ means amplification. Apply the flag rule from Section 2.
+7. **Bullwhip.** $\mathit{BW}=\operatorname{Var}(\Delta\text{SellIn}_t)/\operatorname{Var}(\Delta\text{SellOut}_{t+\tau})$ with the block-bootstrap CI. $\mathit{BW} > 1$ means amplification. Apply the flag rule from Section 2.
 8. **Forward buy / pipeline events.**
    - A sell-in spike (> 3×IQR on the sell-in − sell-out gap remainder) with flat sell-out ahead of a list-price increase or deal → `FORWARD_BUY`.
    - Expect a later burn. Link to the promo skill's `SELL_IN_LIFT`.

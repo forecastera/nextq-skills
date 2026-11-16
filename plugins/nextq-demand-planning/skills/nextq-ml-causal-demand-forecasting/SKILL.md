@@ -41,7 +41,7 @@ It also decomposes forecasts into **baseline + promo lift** for `nextq-promotion
 | **GS-M-15** Combination | If ML and statistical models are within 2% relative MASE [RoT], deploy the **equal-weight** combination. |
 | **GS-M-16** Rolling origin | Expanding window; ≥ 3 origins, or 1 seasonal cycle of origins [RoT]. Retrain at each origin (or at least every 4 origins with a documented reuse rule). Score per lag. |
 | **GS-D-05** Promo decomposition | Baseline $B_t$ = model prediction with promo features set to "no promo" and price = regular price. Gross lift $=A_t-B_t$ (actuals) or $\hat F_t-\hat B_t$ (forecast). Lift % $=(A-B)/B$. Pre/post-dip windows: default 2 periods each [RoT]; exported for B3. |
-| **GS-D-06** (export) | Include cross-item features (promo flags or price indices of same-need-state siblings) so B3 can estimate cannibalization and halo. This skill does not net them out. |
+| **GS-D-06** Cannibalization & halo | Include cross-item features (promo flags or price indices of same-need-state siblings) so B3 can estimate cannibalization and halo. This skill does not net them out. |
 | **GS-K-01/04/05/07** | WAPE $=\sum\lvert A-F\rvert/\sum A$; MASE with the training-window seasonal naïve scale; Bias% $=\sum(F-A)/\sum A$ (+ = over); FVA $=\text{Err}_{\text{benchmark}}-\text{Err}_{\text{ML}}$ on the same items, lag, and window. |
 | **GS-K-13** Reporting | Decision level and aggregate separately; N items, N periods, % reconstructed actuals. |
 | **GS-G-03 / 10 / 11** | Exceptions (MASE > 1, \|Bias\| > 10% for 3 origins, FVA < 0, coverage off > 5 pp, forecast swing > ±25% in the frozen zone) [RoT]; standard output; reproducibility (seeds, library versions, feature list hash). |
