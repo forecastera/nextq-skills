@@ -37,7 +37,7 @@ Every other nextq skill that changes buckets calls this skill's rules (e.g. `nex
 |---|---|
 | **GS-D-09** Time-bucket alignment | **Single fiscal calendar table** (`date → fiscal_week, fiscal_period, fiscal_quarter, fiscal_year, days_in_period, trading_days`); all skills join to it. **Daily → weekly:** sum the days within the fiscal week; the week-ending day is explicit (e.g. Saturday). **Weekly → calendar month:** apportion by day count; weeks spanning months are split by days in each month, optionally weighted by a day-of-week profile, never assigned wholesale. **Monthly S&OP → weekly:** disaggregate by a weekly or daily profile (proportions), then reconcile (temporal hierarchies, Athanasopoulos et al. 2017). Compare unequal periods on **per-day or per-week rates**, never raw totals. |
 | **GS-D-10** 4-4-5 & 53-week | In 4-4-5 / 4-5-4 / 5-4-4 calendars, quarters are 13 weeks and a year is 52 weeks (364 days). A **53rd week** is inserted periodically (roughly every 5–6 years). Year-over-year and seasonal-naïve comparisons must align **like weeks** (restated year) and handle week 53 explicitly: drop it, merge it, or model it with a dummy. Moving holidays (Easter, Lunar New Year, Diwali, Eid) need event dummies. |
-| **GS-D-08** Reconciliation | Coherent forecasts $\tilde y=SG\hat y$. Use WLS with structural scaling $W=\operatorname{diag}(S\mathbf 1)$ when residual covariances are unavailable. Unbiasedness requires $S G S=S$ (asserted). Fuller MinT variants are in `nextq-hierarchical-forecast-reconciliation`. |
+| **GS-D-08** Reconciliation | Coherent forecasts $\tilde y=SG\hat y$. Use WLS with structural scaling $\mathit{W}=\operatorname{diag}(S\mathbf 1)$ when residual covariances are unavailable. Unbiasedness requires $\mathit{S} G S=S$ (asserted). Fuller MinT variants are in `nextq-hierarchical-forecast-reconciliation`. |
 | **GS-G-11** Verification | Every conversion conserves totals to $10^{-9}$ relative. Hierarchy sums satisfy $\lvert\text{parent}-\sum\text{children}\rvert\le10^{-6}$ relative. The calendar is contiguous, with no overlaps, every week 7 days, and one week-ending weekday. |
 | **GS-G-10 / GS-D-13** | Standard output; every re-bucketing is logged with its method and profile version. |
 
@@ -45,7 +45,7 @@ Every other nextq skill that changes buckets calls this skill's rules (e.g. `nex
 - **Year-end rule:** fiscal year ends on the **weekday nearest** an anchor date (default Saturday nearest 31 January, a common US retail convention) or the **last** such weekday on or before it.
 - **Naming:** fiscal year = the calendar year in which it starts.
 - **53rd week:** appended to the last period by default (period 12 becomes 5 or 6 weeks), and Q4 becomes 14 weeks.
-- **Like-for-like:** if the prior year has 53 weeks, `SHIFT` (default) compares current week $w$ with prior week $w+1$ (a restated prior year that excludes its first week); `DROP` compares $w$ with $w$ and ignores week 53. A current-year week 53 has no comparator and is reported separately or modeled with a dummy.
+- **Like-for-like:** if the prior year has 53 weeks, `SHIFT` (default) compares current week $\mathit{w}$ with prior week $\mathit{w}+1$ (a restated prior year that excludes its first week); `DROP` compares $\mathit{w}$ with $\mathit{w}$ and ignores week 53. A current-year week 53 has no comparator and is reported separately or modeled with a dummy.
 - Weeks nest into fiscal periods, but **not** into calendar months. Temporal hierarchies therefore use fiscal periods; calendar months are reached only by day-share apportionment.
 
 ## 3. Required Inputs & Data Schema
@@ -78,8 +78,8 @@ Every other nextq skill that changes buckets calls this skill's rules (e.g. `nex
 5. **Rates for comparison:** per-day = qty / days (or trading days), and per-week = 7 × per-day. Use rates whenever comparing periods of unequal length (4- vs. 5-week periods, 53-week years).
 6. **Year-over-year:** build the like-week map with the declared policy. Moving holidays are compared on event-relative weeks (event week −1, 0, +1) and flagged when they change periods across years.
 7. **Temporal reconciliation:**
-   - When forecasts exist at several nested fiscal grains (weekly, period, quarter), build $S$ for the quarter pattern and reconcile with WLS-structural.
-   - Assert coherence and $S G S=S$.
+   - When forecasts exist at several nested fiscal grains (weekly, period, quarter), build $\mathit{S}$ for the quarter pattern and reconcile with WLS-structural.
+   - Assert coherence and $\mathit{S} G S=S$.
    - Calendar-month views are derived **after** reconciliation by day-share apportionment.
 8. **Log** the method, profile version and conservation residuals. **Output** (Section 6).
 
@@ -166,7 +166,7 @@ def reconcile_wls_struct(S, yhat):
     assert np.allclose(S @ G @ S, S)                       # unbiasedness (SGS = S)
     return y
 ```
-**Test vector** (executed). Defaults: Saturday nearest 31 January, 4-5-4 pattern.
+**Test vector** (verified). Defaults: Saturday nearest 31 January, 4-5-4 pattern.
 - **Fiscal year ends:** FY2022 → 28 Jan 2023, FY2023 → 3 Feb 2024, FY2024 → 1 Feb 2025.
   - **FY2023 has 53 weeks** (29 Jan 2023 – 3 Feb 2024), consistent with the 53-week US retail fiscal 2023. FY2024 has 52 weeks.
   - FY2023 weeks per period = [4,5,4, 4,5,4, 4,5,4, 4,5,**5**].
@@ -179,7 +179,7 @@ def reconcile_wls_struct(S, yhat):
 - **Like weeks:** prior year with 53 weeks, `SHIFT` → week 1 ↔ prior week 2, week 52 ↔ prior week 53. Current week 53 under `DROP` → no comparator.
 - **Temporal reconciliation** (4-5-4 quarter): base quarter 1,400, periods 420 / 560 / 430, 13 weeks × 100 (sum 1,300).
   - WLS-structural gives quarter **1,370**, periods 414.6 / 535.8 / 419.6, weeks summing to 1,370.
-  - Coherent, and $S G S=S$ holds.
+  - Coherent, and $\mathit{S} G S=S$ holds.
 
 ```sql
 -- Calendar integrity checks (each query must return zero rows)
@@ -189,7 +189,7 @@ SELECT d.date FROM generate_series((SELECT MIN(date) FROM fiscal_calendar),
                                    (SELECT MAX(date) FROM fiscal_calendar), INTERVAL '1 day') AS d(date)
 LEFT JOIN fiscal_calendar c ON c.date = d.date WHERE c.date IS NULL;                                  -- gaps
 SELECT fiscal_year FROM fiscal_calendar GROUP BY 1 HAVING COUNT(*) NOT IN (364, 371);                 -- year length
-SELECT DISTINCT EXTRACT(DOW FROM week_ending) FROM fiscal_calendar
+SELECT COUNT(DISTINCT EXTRACT(DOW FROM week_ending)) AS n_weekend_days FROM fiscal_calendar
 HAVING COUNT(DISTINCT EXTRACT(DOW FROM week_ending)) > 1;                                             -- mixed week-end
 ```
 
@@ -246,7 +246,7 @@ Calendar rules, profile versions, policies, code §5.
 ## 7. Edge Cases
 - **Different calendars per region or entity** (e.g. a statutory calendar-month entity alongside retail 4-5-4): keep one calendar table per `calendar_id`. Cross-entity roll-ups go via daily grain, never by week labels.
 - **ISO weeks vs. retail weeks:** ISO weeks start Monday, and ISO year 53s fall in different years than the retail 53-week years. Map through dates only.
-- **Lead times in days with weekly buckets:** convert with $L_{\text{weeks}}=L_{\text{days}}/7$ (fractional) and keep the fraction (consumed by `nextq-safety-stock-optimization`). Do not round to whole weeks.
+- **Lead times in days with weekly buckets:** convert with $\mathit{L}_{\text{weeks}}=L_{\text{days}}/7$ (fractional) and keep the fraction (consumed by `nextq-safety-stock-optimization`). Do not round to whole weeks.
 - **Store closures and holidays:** per-day rates use trading days for store-level comparisons and calendar days for e-commerce.
 - **Partial current period:** compare month-to-date on rates or matched days only. A partial period is never compared to a full one.
 - **Changing the fiscal year-end:** create a new `calendar_id` with an explicit transition year (possibly not 52 or 53 weeks), excluded from YoY.

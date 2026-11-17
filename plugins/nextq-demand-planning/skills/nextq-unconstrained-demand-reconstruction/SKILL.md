@@ -33,14 +33,14 @@ metadata:
 **Division of labour with `nextq-demand-history-cleansing`:**
 - Cleansing detects censoring, assigns period states, and applies **only** (a) orders and (b) availability scaling (`INTERIM_RECON`).
 - Rows it cannot resolve carry `needs_model_recon = true`. This skill resolves them with (a′)/(c)/(d) and leaves (a)/(b) results untouched.
-- Both skills use identical thresholds: material censoring at in-stock < 95%, ×2 cap, $a_t<0.5$ routed to (c), and LOW_CONFIDENCE above 30% reconstructed.
+- Both skills use identical thresholds: material censoring at in-stock < 95%, ×2 cap, $\mathit{a}_t<0.5$ routed to (c), and LOW_CONFIDENCE above 30% reconstructed.
 
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-11** Censoring & reconstruction (mandatory) | Recorded sales $=\min(D_t,\text{available}_t)$. Training on raw sales during stockouts biases forecasts down and creates a self-reinforcing under-stocking loop. **Detect:** censored if on-hand ≤ 0 (start or end) OR in-stock < 100% OR backorders > 0 OR order cut / short-ship > 0. **Material** if in-stock < 95% [RoT]. **Reconstruct, first applicable:** **(a)** orders (requested qty and date) when recorded. **(b)** availability scaling $\hat D_t=S_t/a_t$ (profile-weighted in-stock fraction), uplift capped at ×2; if $a_t<0.5$ use (c) [RoT]. **(c)** model-based: treat $S_t$ as right-censored and estimate by **EM or Tobit-type likelihood**; for substitutable assortments, EM with choice models (Vulcano, van Ryzin & Ratliff 2012). **(d)** last resort: fitted / interpolated value, marked imputed. **Document** the share reconstructed per SKU; > 30% → **LOW_CONFIDENCE** [RoT]. **Substitution:** net reconstructed demand against measurable substitute uplift (no double count). **KPI rule:** score accuracy against unconstrained actuals; report constrained (sales) accuracy separately. |
+| **GS-M-11** Censoring & reconstruction (mandatory) | Recorded sales $=\min(D_t,\text{available}_t)$. Training on raw sales during stockouts biases forecasts down and creates a self-reinforcing under-stocking loop. **Detect:** censored if on-hand ≤ 0 (start or end) OR in-stock < 100% OR backorders > 0 OR order cut / short-ship > 0. **Material** if in-stock < 95% [RoT]. **Reconstruct, first applicable:** **(a)** orders (requested qty and date) when recorded. **(b)** availability scaling $\hat D_t=S_t/a_t$ (profile-weighted in-stock fraction), uplift capped at ×2; if $\mathit{a}_t<0.5$ use (c) [RoT]. **(c)** model-based: treat $\mathit{S}_t$ as right-censored and estimate by **EM or Tobit-type likelihood**; for substitutable assortments, EM with choice models (Vulcano, van Ryzin & Ratliff 2012). **(d)** last resort: fitted / interpolated value, marked imputed. **Document** the share reconstructed per SKU; > 30% → **LOW_CONFIDENCE** [RoT]. **Substitution:** net reconstructed demand against measurable substitute uplift (no double count). **KPI rule:** score accuracy against unconstrained actuals; report constrained (sales) accuracy separately. |
 | **GS-D-02** States | Only CENSORED periods are reconstructed. TRUE_ZERO stays 0, STRUCTURAL_ZERO stays masked, and MISSING is imputed by cleansing (GS-D-03), never by this skill. |
-| **GS-D-06** Substitution / cannibalization | Substitute uplift during the out-of-stock window $U_j=(A_j-B_j)^+$ over the same periods (same need-state, substitute in stock). Transferred demand $T=\min(L_i,\sum_jU_j)$, where $L_i=\sum(\hat D_i-S_i)$ is the lost demand of item $i$. |
+| **GS-D-06** Substitution / cannibalization | Substitute uplift during the out-of-stock window $\mathit{U}_j=(A_j-B_j)^+$ over the same periods (same need-state, substitute in stock). Transferred demand $\mathit{T}=\min(L_i,\sum_jU_j)$, where $\mathit{L}_i=\sum(\hat D_i-S_i)$ is the lost demand of item $\mathit{i}$. |
 | **GS-M-08** Count demand | Low counts (mean < 10 or many zeros [RoT]) must not use a Normal model. Use censored Poisson (VMR ≈ 1) or negative binomial (VMR > 1) likelihoods. Structural zeros are excluded from fitting; sampling zeros are kept. |
 | **GS-D-13** Lineage | Every reconstructed value is logged with **before, after, rule ID, method, parameters, timestamp**. Raw data are immutable. |
 | **GS-K-09** Fill rate | Unit fill rate $=$ units shipped from stock on first pass / units **demanded**. The denominator uses unconstrained (reconstructed) demand. This skill publishes the reconstructed denominator for `nextq-service-level-performance-analysis`. |
@@ -51,17 +51,17 @@ metadata:
 - **Engine routing [RoT]** (GS-M-08) on exact (uncensored) observations:
   - count model if mean < 10 or zero share > 30%: `EM_POISSON` if 0.8 ≤ VMR ≤ 1.2, else `EM_NB`
   - otherwise `TOBIT`
-- **Tobit:** $D_t\sim N(x_t'\beta,\sigma^2)$.
+- **Tobit:** $\mathit{D}_t\sim N(x_t'\beta,\sigma^2)$.
   - Exact rows contribute $\log\phi\big((y_t-x_t'\beta)/\sigma\big)-\log\sigma$. Censored rows contribute $\log\big(1-\Phi((S_t-x_t'\beta)/\sigma)\big)$.
-  - Impute the **conditional expectation** $E[D\mid D\ge S]=\mu+\sigma\,\phi(\alpha)/(1-\Phi(\alpha))$, with $\alpha=(S-\mu)/\sigma$.
+  - Impute the **conditional expectation** $\mathit{E}[D\mid D\ge S]=\mu+\sigma\,\phi(\alpha)/(1-\Phi(\alpha))$, with $\alpha=(S-\mu)/\sigma$.
   - Default regressors: intercept, Fourier seasonal terms (K = 2 at m = 52 when ≥ 2 cycles, else none), promo flag, log price index.
-- **Censored Poisson EM:** $\mu_t=\lambda w_t$, where $w_t$ is the seasonal/promo profile (mean 1) from `nextq-statistical-baseline-forecasting`.
-  - E-step: $E[D\mid D\ge s]=\mu\,P(D\ge s-1)/P(D\ge s)$.
+- **Censored Poisson EM:** $\mu_t=\lambda w_t$, where $\mathit{w}_t$ is the seasonal/promo profile (mean 1) from `nextq-statistical-baseline-forecasting`.
+  - E-step: $\mathit{E}[D\mid D\ge s]=\mu\,P(D\ge s-1)/P(D\ge s)$.
   - M-step: $\lambda=\sum\hat D_t/\sum w_t$. Iterate to a relative change below $10^{-10}$.
-- **Censored NB2:** maximum likelihood with mean $\lambda w_t$ and size $k$. Censored rows contribute $\log P(D\ge S)$. Impute $E[D\mid D\ge S]$ by summing the pmf to the $1-10^{-9}$ quantile.
+- **Censored NB2:** maximum likelihood with mean $\lambda w_t$ and size $\mathit{k}$. Censored rows contribute $\log P(D\ge S)$. Impute $\mathit{E}[D\mid D\ge S]$ by summing the pmf to the $1-10^{-9}$ quantile.
 - **Exact observations** for fitting are OBSERVED, TRUE_ZERO and ORDERS rows. AVAIL_SCALE and model rows enter as **censored at their sales** (their (b) values stay in the output but are not treated as exact).
 - **Floor:** $\hat D_t\ge S_t$ always (asserted).
-- **Review flag** `RECON_LARGE` when $\hat D_t>3S_t$ with $S_t>0$ [RoT]. This is not a cap: a period with almost no availability can legitimately triple.
+- **Review flag** `RECON_LARGE` when $\hat D_t>3S_t$ with $\mathit{S}_t>0$ [RoT]. This is not a cap: a period with almost no availability can legitimately triple.
 
 ## 3. Required Inputs & Data Schema
 **`demand_clean`** (output of `nextq-demand-history-cleansing`, one item-location, sorted):
@@ -69,15 +69,15 @@ metadata:
 | Column | Use |
 |---|---|
 | `item_id, location_id, channel, period_start, period_grain` | keys |
-| `demand_raw_base` (= sales $S_t$), `demand_clean` | lower bound; current value |
+| `demand_raw_base` (= sales $\mathit{S}_t$), `demand_clean` | lower bound; current value |
 | `period_state` ∈ {OBSERVED, TRUE_ZERO, STRUCTURAL_ZERO, MISSING→imputed, CENSORED} | GS-D-02 |
 | `censored_material`, `recon_method` ∈ {NULL, ORDERS, AVAIL_SCALE}, `needs_model_recon`, `imputed_flag`, `train_mask` | cleansing hand-off |
 | `on_hand_qty, in_stock_pct, backorder_qty, order_cut_qty, orders_qty_base` | evidence |
 | `promo_flag, price, list_price, event_flags` | regressors |
 
-**`profile`**: `item_id, location_id, period_start, w_t` (seasonal × promo profile, mean 1) from the baseline skill. If absent, use $w_t=1$ and flag `FLAT_PROFILE`.
+**`profile`**: `item_id, location_id, period_start, w_t` (seasonal × promo profile, mean 1) from the baseline skill. If absent, use $\mathit{w}_t=1$ and flag `FLAT_PROFILE`.
 
-**`substitute_groups`**: `item_id, need_state_id`, plus substitute baselines $B_j$ and actuals $A_j$ for the out-of-stock periods.
+**`substitute_groups`**: `item_id, need_state_id`, plus substitute baselines $\mathit{B}_j$ and actuals $\mathit{A}_j$ for the out-of-stock periods.
 
 **Minimum:** ≥ 8 exact observations per series for (c) [RoT]; otherwise (d). ≥ 2 seasonal cycles for Fourier terms.
 
@@ -86,17 +86,17 @@ metadata:
    - Recompute the censoring test with the same rule as cleansing and assert agreement: any disagreement → `HANDOFF_MISMATCH` (stop for that series).
    - Recompute (a)/(b) for rows with `recon_method` set and assert equality (tolerance $10^{-9}$).
    - This skill never overwrites (a)/(b) results.
-2. **Resolve (a′) implied orders:** rows with `needs_model_recon` where backorder or cut > 0, $a_t$ unknown or = 1, and no order data: $\hat D_t=S_t+\text{backorder}+\text{cut}$ (`ORDERS_IMPLIED`). When $a_t<0.5$, shortage logs undercount walk-away demand, so go to (c).
+2. **Resolve (a′) implied orders:** rows with `needs_model_recon` where backorder or cut > 0, $\mathit{a}_t$ unknown or = 1, and no order data: $\hat D_t=S_t+\text{backorder}+\text{cut}$ (`ORDERS_IMPLIED`). When $\mathit{a}_t<0.5$, shortage logs undercount walk-away demand, so go to (c).
 3. **Engine routing** on exact observations (Section 2).
 4. **Fit (c):**
-   - Tobit, Poisson-EM or NB-MLE per series. Seasonal/promo structure comes through $X$ (Tobit) or $w_t$ (counts).
+   - Tobit, Poisson-EM or NB-MLE per series. Seasonal/promo structure comes through $\mathit{X}$ (Tobit) or $\mathit{w}_t$ (counts).
    - The fit fails or there are fewer than 8 exact observations → (d).
-5. **Impute** each remaining censored row with $E[D\mid D\ge S_t]$ under the fitted model (`TOBIT`, `EM_POISSON`, `EM_NB`). Assert $\hat D_t\ge S_t$.
+5. **Impute** each remaining censored row with $\mathit{E}[D\mid D\ge S_t]$ under the fitted model (`TOBIT`, `EM_POISSON`, `EM_NB`). Assert $\hat D_t\ge S_t$.
 6. **(d) Fallback:** $\hat D_t=\max(\hat\mu_t,S_t)$ from the baseline model's fitted value (`IMPUTED_MODEL`), with `imputed_flag = true`.
 7. **Substitution netting** per out-of-stock episode (contiguous censored periods):
-   - Lost $L_i=\sum(\hat D_i-S_i)$ and substitute uplift $U_j$ (in-stock substitutes only).
-   - $T=\min(L_i,\sum U_j)$, allocated pro-rata to $U_j$.
-   - **Item $i$ keeps $\hat D_i$** (what customers wanted of $i$). **Each substitute's history is reduced by its allocation** (`SUBSTITUTE_DEFLATED`, logged), so category demand is not double counted.
+   - Lost $\mathit{L}_i=\sum(\hat D_i-S_i)$ and substitute uplift $\mathit{U}_j$ (in-stock substitutes only).
+   - $\mathit{T}=\min(L_i,\sum U_j)$, allocated pro-rata to $\mathit{U}_j$.
+   - **Item $\mathit{i}$ keeps $\hat D_i$** (what customers wanted of $\mathit{i}$). **Each substitute's history is reduced by its allocation** (`SUBSTITUTE_DEFLATED`, logged), so category demand is not double counted.
    - Category net lost sales $=L_i-T$.
    - Where choice-model data exist (assortment sets, transaction-level choices), the Vulcano et al. (2012) EM is the preferred estimator. It is not implemented in §5 and must be run as a separate documented model.
 8. **Validation (masking):**
@@ -216,14 +216,14 @@ def masking_validation(y_true, cap_frac, seed=0, engine="EM_POISSON", w=None):
                 bias_recon_pct=100 * (ed[m].sum() - y_true[m].sum()) / y_true[m].sum(),
                 wape_recon_pct=100 * np.abs(ed[m] - y_true[m]).sum() / y_true[m].sum())
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - **Detection** on 4 rows (on-hand 5/0/3/2, in-stock 1/0.4/0.97/1, backorder 0/0/0/1): censored = [F, T, T, T]; material = [F, T, F, F].
 - **(a)/(b)/(a′):**
   - S = 50, a = 0.8 → 62.5 `AVAIL_SCALE`.
   - a = 1.0 with backorder 7 → 57 `ORDERS_IMPLIED`.
   - a = 0.4 → model (c).
   - orders 42 → 42 `ORDERS`.
-- **Tobit** (seed 1): 104 weeks, $D=100+20\sin-10\cos+N(0,8^2)$, 20 periods censored at 60–95% of demand.
+- **Tobit** (seed 1): 104 weeks, $\mathit{D}=100+20\sin-10\cos+N(0,8^2)$, 20 periods censored at 60–95% of demand.
   - Estimates β = [99.62, 20.21, −9.63] (true [100, 20, −10]) and σ = 6.80. Naïve OLS on sales gives intercept 95.16.
   - Censored-period total: raw sales bias **−23.3%** → Tobit conditional mean **+0.7%**.
 - **Poisson EM:** y = [3,5,2,4,1,4,3,6] with periods 3 and 5 censored → λ = 4.2243. Imputed 2 → 4.507 and 1 → 4.287.
@@ -305,11 +305,11 @@ Thresholds (0.95 / 2.0 / 0.5 / 0.30), routing rule, regressors, profile version,
 ```
 
 ## 7. Edge Cases
-- **Full-period stockout with zero sales** ($S_t=0$, $a_t=0$): the conditional expectation reduces to the model mean $\mu_t$, which is correct. Never leave the period at 0 (that would be a false TRUE_ZERO).
+- **Full-period stockout with zero sales** ($\mathit{S}_t=0$, $\mathit{a}_t=0$): the conditional expectation reduces to the model mean $\mu_t$, which is correct. Never leave the period at 0 (that would be a false TRUE_ZERO).
 - **Long stockout runs** (more than one cycle censored): the model has no recent exact level. Use (d) with the pre-stockout level and flag `LONG_OUTAGE`. Exclude the run from training if more than 30% of the series (cleansing then marks LOW_CONFIDENCE).
 - **Allocation / rationing in B2B** (orders recorded): method (a) always wins. Never model what was recorded.
-- **Promotion during a stockout:** include `promo_flag` in $X$ / $w_t$, otherwise lift is under-estimated. The promo skill then reads the reconstructed demand flagged `CENSORED_PROMO`.
-- **Substitute also out of stock:** exclude it from $U_j$. If all substitutes are out, $T=0$ and the whole loss is category lost sales.
+- **Promotion during a stockout:** include `promo_flag` in $\mathit{X}$ / $\mathit{w}_t$, otherwise lift is under-estimated. The promo skill then reads the reconstructed demand flagged `CENSORED_PROMO`.
+- **Substitute also out of stock:** exclude it from $\mathit{U}_j$. If all substitutes are out, $\mathit{T}=0$ and the whole loss is category lost sales.
 - **Phantom inventory** (on-hand > 0 but zero sales for an unusual run): not censored by the rule. Flag `PHANTOM_SUSPECT` when P(0 run | model) < 1% and route to `nextq-demand-anomaly-shift-detection`. Do not reconstruct without evidence.
-- **Daily grain:** availability $a_t$ must be weighted by the intraday/day-of-week demand profile. A stockout on a Saturday removes more demand than one on a Tuesday.
-- **Returns-netted sales** below zero in a censored period: floor $S_t$ at 0 for the censoring bound and log it.
+- **Daily grain:** availability $\mathit{a}_t$ must be weighted by the intraday/day-of-week demand profile. A stockout on a Saturday removes more demand than one on a Tuesday.
+- **Returns-netted sales** below zero in a censored period: floor $\mathit{S}_t$ at 0 for the censoring bound and log it.

@@ -33,17 +33,17 @@ metadata:
 |---|---|
 | **GS-D-12** Lifecycle & master data | New items use analogs or likeness-based curves: **shape × scale**, with a documented analog and expected range. Supersessions chain history from old to new SKU with a **conversion factor**. Phase-outs switch to **TSB** or a run-out plan. Minimum-history gates for statistical models are set here (below) and documented. |
 | **GS-D-02** States | Pre-launch and post-discontinuation periods are **STRUCTURAL_ZERO**: masked, never trained on. Launch weeks with in-stock < 95% are censored and must be reconstructed before an item is used as an analog (`nextq-unconstrained-demand-reconstruction`). |
-| **GS-M-06** TSB | Demand-occurrence probability $\pi$ updated **every** period: $y_t>0:\ \pi_t=\pi_{t-1}+\beta(1-\pi_{t-1}),\ z_t=z_{t-1}+\alpha(y_t-z_{t-1})$; $y_t=0:\ \pi_t=\pi_{t-1}(1-\beta),\ z_t=z_{t-1}$. Forecast $\hat y=\pi_t z_t$. $\alpha,\beta\in[0.05,0.3]$ [RoT]. TSB is **required** for obsolescence / EOL decisions (it decays during zero runs; Croston/SBA do not). |
+| **GS-M-06** TSB | Demand-occurrence probability $\pi$ updated **every** period: $\mathit{y}_t>0:\ \pi_t=\pi_{t-1}+\beta(1-\pi_{t-1}),\ z_t=z_{t-1}+\alpha(y_t-z_{t-1})$; $\mathit{y}_t=0:\ \pi_t=\pi_{t-1}(1-\beta),\ z_t=z_{t-1}$. Forecast $\hat y=\pi_t z_t$. $\alpha,\beta\in[0.05,0.3]$ [RoT]. TSB is **required** for obsolescence / EOL decisions (it decays during zero runs; Croston/SBA do not). |
 | **GS-M-10** Probabilistic | Point forecasts are insufficient. Launch ranges come from the **dispersion of analog scales** (weighted empirical P10/P90, ≥ 3 analogs) and are reported with the point. Intervals over a horizon come from summed paths, never summed quantiles. |
 | **GS-G-01** Overrides | Launch overrides need a reason code and evidence. **UP > 20%** vs. the analog forecast requires secondary approval (optimism bias is strongest for launches; Fildes et al. 2009 found upward adjustments less likely to improve accuracy). Materiality: reject $\lvert\Delta\rvert<\max(10\%\cdot F, 1\cdot\text{MAD})$; for launches without MAD, use 10% only. |
 | **GS-G-09** Segmentation | Items in LAUNCH/GROWTH get segment `NEW` (weekly review, override-eligible, CSL target per business rule) until handoff; they are excluded from ABC/XYZ until 26 weeks of history [RoT]. |
-| **GS-K-05 / GS-K-01** | Launch accuracy is scored **cumulatively** over the first $H$ periods: cumulative Bias% $=(\sum F-\sum A)/\sum A$ (+ = over) and WAPE $=\sum\lvert A-F\rvert/\sum A$, at fixed lag (forecast frozen at launch − lead time). |
+| **GS-K-05 / GS-K-01** | Launch accuracy is scored **cumulatively** over the first $\mathit{H}$ periods: cumulative Bias% $=(\sum F-\sum A)/\sum A$ (+ = over) and WAPE $=\sum\lvert A-F\rvert/\sum A$, at fixed lag (forecast frozen at launch − lead time). |
 | **GS-G-10 / GS-G-11 / GS-D-13** | Standard output; reproducible from analog IDs and parameters; every chained or rescaled value logged (before, after, rule, timestamp). |
 
 **Lifecycle parameters [RoT, configurable]:**
-- **Analogs:** $k=3$–5 analogs with similarity ≥ 0.60. Each must have ≥ $H$ weeks of clean post-launch history (default $H=26$).
-- **Early-read weight:** $w=n/(n+n_0)$ with $n_0=4$.
-- **Handoff to statistical:** ≥ 26 non-structural weeks for non-seasonal items, ≥ 52 for seasonal. Blend linearly from week 13 to 26: $F=(1-\omega)F_{\text{analog}}+\omega F_{\text{stat}}$, $\omega=(n-13)/13$. Hand off fully only if stat MASE ≤ analog MASE on the last 8 weeks.
+- **Analogs:** $\mathit{k}=3$–5 analogs with similarity ≥ 0.60. Each must have ≥ $\mathit{H}$ weeks of clean post-launch history (default $\mathit{H}=26$).
+- **Early-read weight:** $\mathit{w}=n/(n+n_0)$ with $\mathit{n}_0=4$.
+- **Handoff to statistical:** ≥ 26 non-structural weeks for non-seasonal items, ≥ 52 for seasonal. Blend linearly from week 13 to 26: $\mathit{F}=(1-\omega)F_{\text{analog}}+\omega F_{\text{stat}}$, $\omega=(n-13)/13$. Hand off fully only if stat MASE ≤ analog MASE on the last 8 weeks.
 - **Phase-out:** TSB from the phase-out announcement date, with α = β = 0.1 unless optimized.
 
 ## 3. Required Inputs & Data Schema
@@ -70,8 +70,8 @@ metadata:
 
    Periods before launch or after EOL are STRUCTURAL_ZERO.
 2. **Analog selection (likeness):**
-   - Compute weighted Gower similarity $S(i,a)=\sum_k w_k s_k/\sum_k w_k$ over non-missing attributes, where categorical $s_k=\mathbb 1[x=y]$ and numeric $s_k=1-\min(\lvert x-y\rvert/\text{range}_k,1)$.
-   - Keep the top $k$ with $S ≥ 0.60$ and ≥ $H$ clean weeks.
+   - Compute weighted Gower similarity $\mathit{S}(i,a)=\sum_k w_k s_k/\sum_k w_k$ over non-missing attributes, where categorical $\mathit{s}_k=\mathbb 1[x=y]$ and numeric $\mathit{s}_k=1-\min(\lvert x-y\rvert/\text{range}_k,1)$.
+   - Keep the top $\mathit{k}$ with $\mathit{S} ≥ 0.60$ and ≥ $\mathit{H}$ clean weeks.
    - If fewer than 3 qualify: use the **category pooled curve** (all launches in the subcategory in the last 3 years [RoT]), flagged `POOLED_ANALOG` and `LOW_CONFIDENCE`.
    - Document analog IDs, similarities, and the planner's accept/replace decision (a planner-chosen analog is an override: reason code required).
 3. **Align analogs:**
@@ -82,28 +82,28 @@ metadata:
 4. **Shape × scale:**
    - Shape $\text{Sh}(t)=\sum_a \tilde w_a\,c_a(t)/\sum_{t\le H}c_a(t)$ with $\tilde w_a=S_a/\sum S$, so $\sum_t \text{Sh}(t)=1$.
    - Scale per store $\bar C=\sum_a\tilde w_a\sum_{t\le H}c_a(t)$.
-   - Forecast $F(t)=\bar C\cdot\text{stores}(t)\cdot\text{Sh}(t)\cdot(P_{\text{new}}/P_{\text{analog}})^{\varepsilon}$. Apply the price term only when a category elasticity $\varepsilon$ is supplied (otherwise flag `NO_PRICE_ADJ`).
-   - For durables with no analog, a Bass diffusion curve may be used. Cumulative adopters $N(t)=m\frac{1-e^{-(p+q)t}}{1+(q/p)e^{-(p+q)t}}$. Parameters $p,q$ come from analogs; never use generic values without a `GENERIC_BASS` flag.
+   - Forecast $\mathit{F}(t)=\bar C\cdot\text{stores}(t)\cdot\text{Sh}(t)\cdot(P_{\text{new}}/P_{\text{analog}})^{\varepsilon}$. Apply the price term only when a category elasticity $\varepsilon$ is supplied (otherwise flag `NO_PRICE_ADJ`).
+   - For durables with no analog, a Bass diffusion curve may be used. Cumulative adopters $\mathit{N}(t)=m\frac{1-e^{-(p+q)t}}{1+(q/p)e^{-(p+q)t}}$. Parameters $\mathit{p},q$ come from analogs; never use generic values without a `GENERIC_BASS` flag.
 5. **Range (GS-M-10):**
    - P10/P90 = weighted empirical quantiles of analog scales × stores × shape (≥ 3 analogs).
    - With pooled analogs, widen to the P5/P95 of all subcategory launches.
-   - Report the cumulative-$H$ point (similarity-weighted mean) with P10/P90.
+   - Report the cumulative-$\mathit{H}$ point (similarity-weighted mean) with P10/P90.
 6. **Early-read re-scaling (weeks 1–12):**
    - Observed scale $\hat C_{\text{obs}}=\sum_{t\le n}A_t/\sum_{t\le n}\text{Sh}(t)$ (total units, same distribution basis).
-   - Updated $C=w\hat C_{\text{obs}}+(1-w)C_{\text{prior}}$ with $w=n/(n+n_0)$.
+   - Updated $\mathit{C}=w\hat C_{\text{obs}}+(1-w)C_{\text{prior}}$ with $\mathit{w}=n/(n+n_0)$.
    - Shape stays fixed until week 8; after that, the planner may switch to the best-fit analog subset (logged).
    - Censored launch weeks are reconstructed first; never re-scale on stockout-truncated sales.
 7. **Handoff:** apply the blend from week 13 to 26 and the MASE-gated full handoff (Section 2 parameters). Log the handoff date.
 8. **Supersession chaining:**
    - Resolve chains transitively (A→B→C, factors multiply) and reject cycles (`SUPERSESSION_CYCLE`).
-   - Chained history: $H_{\text{new}}(t)=\sum_{\text{old}} H_{\text{old}}(t)\cdot f_{\text{old}}\cdot \text{share}_{\text{old}\to\text{new}}$.
+   - Chained history: $\mathit{H}_{\text{new}}(t)=\sum_{\text{old}} H_{\text{old}}(t)\cdot f_{\text{old}}\cdot \text{share}_{\text{old}\to\text{new}}$.
    - During an overlap window (both selling), sum old (converted) + new. Never take max or duplicate.
    - Old-item periods after `effective_date` become STRUCTURAL_ZERO for the old item.
 9. **Phase-out / run-out:**
    - Switch to TSB at the announcement. Forecast to EOL; after EOL the forecast is 0 (structural).
-   - Excess at EOL $=\max(\text{on\_hand}+\text{on\_order}-\sum_{t\le \text{EOL}}F_t,0)$. Exhaustion period = first $t$ where cumulative $F ≥$ position.
+   - Excess at EOL $=\max(\text{on\_hand}+\text{on\_order}-\sum_{t\le \text{EOL}}F_t,0)$. Exhaustion period = first $\mathit{t}$ where cumulative $\mathit{F} ≥$ position.
    - Flag `RUN_OUT_EXCESS` if excess > 0 (value at cost) and `EARLY_STOCKOUT` if exhaustion precedes EOL by > lead time.
-   - Successor uplift: $F_{\text{succ}}(t)\mathrel{+}=\text{transfer\_rate}\cdot F_{\text{old,counterfactual}}(t)$ for $t > \text{EOL}$, flagged `TRANSFER`. If the successor's own forecast is analog-based on **replacement** analogs (`REPLACE_1_1`), the transfer is already in that curve, so do not add it (no double count).
+   - Successor uplift: $\mathit{F}_{\text{succ}}(t)\mathrel{+}=\text{transfer\_rate}\cdot F_{\text{old,counterfactual}}(t)$ for $\mathit{t} > \text{EOL}$, flagged `TRANSFER`. If the successor's own forecast is analog-based on **replacement** analogs (`REPLACE_1_1`), the transfer is already in that curve, so do not add it (no double count).
 10. **Governance:** launch overrides use the GS-G-01 rules (UP > 20% needs approval). Launch forecasts are frozen at launch − lead time for cumulative accuracy scoring.
 11. **Output** (Section 6).
 
@@ -183,8 +183,8 @@ def run_out(on_hand, on_order, fcst_until_eol):
     idx = int(np.argmax(cum >= pos)) if (cum >= pos).any() else None
     return max(pos - cum[-1], 0.0), idx
 ```
-**Test vector** (executed):
-- **New item** {snack, brand X, $3.00, 6-pack}. Weights: category 3, brand 2, price 2 (range $2.00), pack 1 (range 12).
+**Test vector** (verified):
+- **New item** {snack, brand X, USD 3.00, 6-pack}. Weights: category 3, brand 2, price 2 (range USD 2.00), pack 1 (range 12).
   - Similarities: A = 0.975, B = 0.6875, C = 0.8125. All three are ≥ 0.60, so all qualify.
 - **8-week per-store curves:** A = [2,4,6,6,5,5,4,4], B = [1,3,5,5,5,4,4,3], C = [3,5,5,4,4,3,3,3].
   - Shape = [0.0640, 0.1263, 0.1667, 0.1557, 0.1448, 0.1246, 0.1136, 0.1044]. Scale = 32.364 units/store.
@@ -259,7 +259,7 @@ Analog IDs + similarities, attribute weights/ranges, H, n0, handoff rule, TSB α
 ## 7. Edge Cases
 - **No store counts** for analogs: use total-demand curves and flag `NO_DISTRIBUTION_BASIS`. The scale then assumes the same distribution as the analog.
 - **Analog launched with a promo** but the new item launches without one (or vice versa): remove analog promo lift using the `nextq-promotion-lift-cannibalization-planning` baseline before shaping.
-- **Censored launch** (stockout in the first weeks): early-read re-scaling uses reconstructed demand. If more than 30% of the observed weeks are reconstructed, keep $w$ at most 0.25 [RoT] and flag it.
+- **Censored launch** (stockout in the first weeks): early-read re-scaling uses reconstructed demand. If more than 30% of the observed weeks are reconstructed, keep $\mathit{w}$ at most 0.25 [RoT] and flag it.
 - **New item cannibalizes the old range** (line extension): forecast the incremental and the cannibalized volume separately (GS-D-06), and reduce the affected items' forecasts in consensus with reason NEW_LISTING.
 - **1:N split** without split shares: use the new items' planned distribution shares and flag `ASSUMED_SPLIT`.
 - **Re-launch / re-listing** after a gap longer than one cycle: treat it as a new launch with the old item as the top analog; do not chain across the gap.

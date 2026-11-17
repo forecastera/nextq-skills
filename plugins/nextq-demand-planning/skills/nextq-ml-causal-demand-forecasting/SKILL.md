@@ -34,23 +34,23 @@ It also decomposes forecasts into **baseline + promo lift** for `nextq-promotion
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-09** ML controls | Allowed when there are many related series, causal features, and adequate history. Gradient boosting and global models led M5 (Makridakis et al. 2022) [EVID]. **Mandatory:** (1) time-ordered rolling-origin validation only, **no random K-fold across time**. (2) **No look-ahead leakage:** every feature must be computable at forecast creation time $t-\ell$. Future price/promo/event values are allowed **only** if `known_in_advance = true` and locked in the plan at $t-\ell$. (3) Must beat NF1/NF2 **and** the best statistical model on the primary metric (FVA ≥ 0). (4) Report feature importance and bias by segment. (5) Use a decision-aligned loss: **Tweedie** (variance power 1.1–1.5 [RoT]) or **Poisson** for counts/intermittent series, **quantile (pinball) loss** for service-level targets, L2 for mean forecasts of smooth series. |
-| **GS-M-01** Lag | $e_t=A_t-F_t$. Score at the decision lag ℓ. Features for target period $t$ use information ≤ $t-\ell$ (**direct** strategy: one model per lag bucket, or a lag-aware feature set). |
+| **GS-M-09** ML controls | Allowed when there are many related series, causal features, and adequate history. Gradient boosting and global models led M5 (Makridakis et al. 2022) [EVID]. **Mandatory:** (1) time-ordered rolling-origin validation only, **no random K-fold across time**. (2) **No look-ahead leakage:** every feature must be computable at forecast creation time $\mathit{t}-\ell$. Future price/promo/event values are allowed **only** if `known_in_advance = true` and locked in the plan at $\mathit{t}-\ell$. (3) Must beat NF1/NF2 **and** the best statistical model on the primary metric (FVA ≥ 0). (4) Report feature importance and bias by segment. (5) Use a decision-aligned loss: **Tweedie** (variance power 1.1–1.5 [RoT]) or **Poisson** for counts/intermittent series, **quantile (pinball) loss** for service-level targets, L2 for mean forecasts of smooth series. |
+| **GS-M-01** Lag | $\mathit{e}_t=A_t-F_t$. Score at the decision lag ℓ. Features for target period $\mathit{t}$ use information ≤ $\mathit{t}-\ell$ (**direct** strategy: one model per lag bucket, or a lag-aware feature set). |
 | **GS-M-02** Benchmarks | NF1 $\hat y_{T+h}=y_T$; NF2 $\hat y_{T+h}=y_{T+h-m(k+1)}$. Plus the selected statistical model from `nextq-statistical-baseline-forecasting` (same origins, same lag). |
-| **GS-M-10** Probabilistic | Quantile models (P10/P50/P90 + service quantiles) or conformal intervals from rolling-origin residuals by lag. Check quantile crossing; enforce monotone quantiles by sorting. Coverage target ±5 pp [RoT]. Pinball $Q_{p}=2(1-p)(f-y)$ if $y<f$, else $2p(y-f)$. |
+| **GS-M-10** Probabilistic | Quantile models (P10/P50/P90 + service quantiles) or conformal intervals from rolling-origin residuals by lag. Check quantile crossing; enforce monotone quantiles by sorting. Coverage target ±5 pp [RoT]. Pinball $\mathit{Q}_{p}=2(1-p)(f-y)$ if $\mathit{y}<f$, else $2p(y-f)$. |
 | **GS-M-15** Combination | If ML and statistical models are within 2% relative MASE [RoT], deploy the **equal-weight** combination. |
 | **GS-M-16** Rolling origin | Expanding window; ≥ 3 origins, or 1 seasonal cycle of origins [RoT]. Retrain at each origin (or at least every 4 origins with a documented reuse rule). Score per lag. |
-| **GS-D-05** Promo decomposition | Baseline $B_t$ = model prediction with promo features set to "no promo" and price = regular price. Gross lift $=A_t-B_t$ (actuals) or $\hat F_t-\hat B_t$ (forecast). Lift % $=(A-B)/B$. Pre/post-dip windows: default 2 periods each [RoT]; exported for B3. |
+| **GS-D-05** Promo decomposition | Baseline $\mathit{B}_t$ = model prediction with promo features set to "no promo" and price = regular price. Gross lift $=A_t-B_t$ (actuals) or $\hat F_t-\hat B_t$ (forecast). Lift % $=(A-B)/B$. Pre/post-dip windows: default 2 periods each [RoT]; passed to `nextq-promotion-lift-cannibalization-planning`. |
 | **GS-D-06** Cannibalization & halo | Include cross-item features (promo flags or price indices of same-need-state siblings) so B3 can estimate cannibalization and halo. This skill does not net them out. |
 | **GS-K-01/04/05/07** | WAPE $=\sum\lvert A-F\rvert/\sum A$; MASE with the training-window seasonal naïve scale; Bias% $=\sum(F-A)/\sum A$ (+ = over); FVA $=\text{Err}_{\text{benchmark}}-\text{Err}_{\text{ML}}$ on the same items, lag, and window. |
 | **GS-K-13** Reporting | Decision level and aggregate separately; N items, N periods, % reconstructed actuals. |
 | **GS-G-03 / 10 / 11** | Exceptions (MASE > 1, \|Bias\| > 10% for 3 origins, FVA < 0, coverage off > 5 pp, forecast swing > ±25% in the frozen zone) [RoT]; standard output; reproducibility (seeds, library versions, feature list hash). |
 
 ### Leakage checklist (all must be ✅ before scoring)
-1. Target lags use `shift(ℓ + k)` relative to the target period, never `shift(k)` with $k < ℓ$.
+1. Target lags use `shift(ℓ + k)` relative to the target period, never `shift(k)` with $\mathit{k} < ℓ$.
 2. Rolling statistics are computed on data shifted by ≥ ℓ.
-3. Price and promo for future periods come from the **plan snapshot as of $t-\ell$**, not from realized actuals. If no plan snapshot exists, the feature is lagged by ℓ or dropped.
-4. Weather: use **forecast** weather at $t-\ell$ for the backtest when available. Realized weather in the backtest inflates accuracy; it is allowed only for driver attribution, and must be labeled `OPTIMISTIC_WEATHER`.
+3. Price and promo for future periods come from the **plan snapshot as of $\mathit{t}-\ell$**, not from realized actuals. If no plan snapshot exists, the feature is lagged by ℓ or dropped.
+4. Weather: use **forecast** weather at $\mathit{t}-\ell$ for the backtest when available. Realized weather in the backtest inflates accuracy; it is allowed only for driver attribution, and must be labeled `OPTIMISTIC_WEATHER`.
 5. Target encodings and item statistics are fit on the training fold only.
 6. Cleansing outputs (outlier replacements, imputations) that used future data are flagged. When possible, recompute per origin, or else document it as a known limitation.
 7. Stockout-censored periods (`needs_model_recon`) are excluded from training targets, or replaced by reconstructed demand with `sample_weight` 0.5 [RoT].
@@ -87,7 +87,7 @@ It also decomposes forecasts into **baseline + promo lift** for `nextq-promotion
 ## 4. Execution Workflow
 1. **Scope:** take series with route `R_CAUSAL` (plus any user-requested set), and pull the statistical backtest for the same series.
 2. **Feature build (per decision lag ℓ):**
-   - Target lags: $y_{t-\ell}, y_{t-\ell-1},\dots$, and seasonal $y_{t-m}$ only if $m ≥ \ell$.
+   - Target lags: $\mathit{y}_{t-\ell}, y_{t-\ell-1},\dots$, and seasonal $\mathit{y}_{t-m}$ only if $\mathit{m} ≥ \ell$.
    - Rolling mean/SD/median over windows {4, 8, 13, 52} computed on `y.shift(ℓ)`.
    - Calendar: week-of-year, fiscal period, holiday distance, week-53 flag.
    - Price: log price, price index vs. regular price (= price/regular_price), price change vs. last period.
@@ -112,14 +112,14 @@ It also decomposes forecasts into **baseline + promo lift** for `nextq-promotion
    - Gain/split importance and SHAP mean |value| on the last origin.
    - **Price elasticity** check: partial-dependence slope of log demand on log price index. Flag `ELASTICITY_SIGN` if it is positive for non-Veblen categories.
    - Promo lift = $\hat F - \hat B$, with $\hat B$ computed by counterfactual (promo off, regular price).
-8. **Final training** on all data. Forecast $h=1..H$ using only known-in-advance future drivers. Drivers not known in advance are set to their lagged or seasonal value, and are flagged.
+8. **Final training** on all data. Forecast $\mathit{h}=1..H$ using only known-in-advance future drivers. Drivers not known in advance are set to their lagged or seasonal value, and are flagged.
 9. **Bias by segment:** ABC, class, category, promo vs. non-promo periods, new vs. mature items.
 10. **Output** (Section 6). Persist `forecast_version = ML_<run_id>`, the feature list hash, and the per-origin snapshots for FVA (B1).
 
 ## 5. Verification Snippets
 ```python
 import numpy as np, pandas as pd
-import lightgbm as lgb   # pip install lightgbm
+import lightgbm as lgb   # if unavailable, use sklearn HistGradientBoostingRegressor
 
 def make_features(df, lag, m=52):
     """df sorted by [item_id, location_id, period_start]; target y. All target-derived features shifted by >= lag."""
@@ -147,6 +147,8 @@ def leakage_assert(feature_cols, lag, known_in_advance):
             k = int(c[len("y_lag"):]); assert k >= lag, f"{c}: shift {k} < lag {lag}"
         if c == "y_lag_season":
             assert True  # built only when m >= lag (see make_features)
+        if c.startswith("promo_lag") and int(c[len("promo_lag"):]) < lag:
+            assert known_in_advance.get("promo_flag", False), f"{c}: shift < lag {lag} and promo plan not known in advance"
         if c.startswith("promo_lead") or c in ("price", "price_idx", "log_price", "promo_flag", "promo_depth"):
             b = "promo_flag" if c.startswith("promo_lead") else base_of.get(c, c)
             assert known_in_advance.get(b, False), f"{c}: driver '{b}' not known in advance -> lag it by {lag} or drop"
@@ -221,7 +223,7 @@ GROUP BY model ORDER BY CASE model WHEN 'NF1' THEN 1 WHEN 'NF2' THEN 2 WHEN 'STA
 | Feature | Gain share % | Mean |SHAP| | Direction | Known-in-advance | Notes |
 |---|---|---|---|---|---|---|
 
-## Promo Baseline/Lift Export (for B3)
+## Promo Baseline/Lift Handoff (to nextq-promotion-lift-cannibalization-planning)
 | item | loc | period | forecast | baseline (counterfactual) | lift units | lift % | promo_depth | pre/post window |
 |---|---|---|---|---|---|---|---|---|
 

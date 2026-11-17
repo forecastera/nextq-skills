@@ -32,8 +32,8 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-D-04** Outliers | Detection on the remainder of a robust decomposition: flag values outside $[Q_1-3\,\text{IQR},\ Q_3+3\,\text{IQR}]$ (FPP3 §13.9 preferred rule; 1.5×IQR is the looser alternative). **Explain first** (promo, event, data error, bulk order). Known recurring causes become regressors, not removals. Replacements are logged with the original value and never silent. **Intermittent** series: no decomposition-based detection; use a size-only 3×IQR (or P99) check on non-zero sizes. The default engine is the same median-based robust decomposition as `nextq-demand-history-cleansing`; STL is an optional cross-check. |
-| **GS-K-06** Tracking signal | $\mathit{TS}=\sum(A-F)/\text{MAD}$ over the rolling window (13 weeks / 6 months). **Positive = under-forecast.** Out of control at $\lvert TS\rvert>4$ [RoT]. This is the bias-drift detector; it shares one function with `nextq-forecast-accuracy-diagnostics`. |
+| **GS-D-04** Outliers | Detection on the remainder of a robust decomposition: flag values outside $\left[Q_1-3\,\text{IQR},\ Q_3+3\,\text{IQR}\right]$ (FPP3 §13.9 preferred rule; 1.5×IQR is the looser alternative). **Explain first** (promo, event, data error, bulk order). Known recurring causes become regressors, not removals. Replacements are logged with the original value and never silent. **Intermittent** series: no decomposition-based detection; use a size-only 3×IQR (or P99) check on non-zero sizes. The default engine is the same median-based robust decomposition as `nextq-demand-history-cleansing`; STL is an optional cross-check. |
+| **GS-K-06** Tracking signal | $\mathit{TS}=\sum(A-F)/\text{MAD}$ over the rolling window (13 weeks / 6 months). **Positive = under-forecast.** Out of control at $\lvert \mathit{TS}\rvert>4$ [RoT]. This is the bias-drift detector; it shares one function with `nextq-forecast-accuracy-diagnostics`. |
 | **GS-G-03** Exceptions | Each alarm lists cause, impact (units, value) and action. Rank by value at risk = \|units at risk\| × unit margin × ABC weight (**A = 3, B = 2, C = 1** [RoT]). Show the top N. Use the same case and hysteresis rules as the exception skill. |
 | **GS-G-01** Human-in-the-loop | Planner responses that change the forecast are overrides: they need a reason code, are subject to materiality and the UP > 20% approval rule, and are scored by FVA. An automatic re-level is a model action and is logged as such, not as an override. |
 | **GS-M-11** Censoring | Drops in periods with in-stock < 95% are **censoring**, not demand shifts. Route them to reconstruction and never re-level on them. |
@@ -41,16 +41,16 @@ metadata:
 | **GS-G-10 / GS-G-11** | Standard output; detectors are reproducible from the stored series snapshot. |
 
 **Detector parameters [STD where noted, otherwise RoT]:**
-- **CUSUM** (Page, tabular, two-sided) on standardized one-step errors $z_t=e_t/\hat\sigma$, with $\hat\sigma$ = RMSE on the training window.
-  - $S^+_t=\max(0,S^+_{t-1}+z_t-k)$ and $S^-_t=\max(0,S^-_{t-1}-z_t-k)$. Alarm when $S>h$.
-  - Defaults: $k=0.5$ (tuned to about a 1σ shift) and $h=5$. These are standard SPC choices: in-control average run length ≈ 465 periods for $h=5$ and ≈ 168 for $h=4$ (Montgomery's tables).
+- **CUSUM** (Page, tabular, two-sided) on standardized one-step errors $\mathit{z}_t=e_t/\hat\sigma$, with $\hat\sigma$ = RMSE on the training window.
+  - $\mathit{S}^+_t=\max(0,S^+_{t-1}+z_t-k)$ and $\mathit{S}^-_t=\max(0,S^-_{t-1}-z_t-k)$. Alarm when $\mathit{S}>h$.
+  - Defaults: $\mathit{k}=0.5$ (tuned to about a 1σ shift) and $\mathit{h}=5$. These are standard SPC choices: in-control average run length ≈ 465 periods for $\mathit{h}=5$ and ≈ 168 for $\mathit{h}=4$ (Montgomery's tables).
   - **A CUSUM alarm is a trigger, not a verdict:** it must be confirmed by the change-point test.
 - **Change-point confirmation:**
   - Single mean change at the $\tau$ minimizing piecewise-constant SSE, with both segments ≥ 8 periods.
-  - Confirmed only if Welch $p<0.01$ **and** |relative change| ≥ 20%.
+  - Confirmed only if Welch $\mathit{p}<0.01$ **and** |relative change| ≥ 20%.
   - Unconfirmed alarms are logged as `SHIFT_CANDIDATE` and re-tested each period.
 - **Variance shift:** MAD of the last 13 errors / MAD of history > 2.
-- **Occurrence shift** (intermittent, ADI ≥ 1.32): exact binomial test of the recent (13-period) non-zero count against the historical occurrence rate, $p<0.01$.
+- **Occurrence shift** (intermittent, ADI ≥ 1.32): exact binomial test of the recent (13-period) non-zero count against the historical occurrence rate, $\mathit{p}<0.01$.
 - **UoM / data-error heuristic:** the level ratio after/before within 5% of a pack multiple (6, 10, 12, 24, 48) or its inverse → `UOM_SUSPECT`.
 
 ## 3. Required Inputs & Data Schema
@@ -70,7 +70,7 @@ metadata:
 2. **Point anomalies** (GS-D-04):
    - Smooth/erratic series with ≥ 2 cycles: robust remainder → 3×IQR bounds.
    - Intermittent series or short history: size-only check on non-zero sizes.
-3. **Bias drift:** $\lvert TS\rvert>4$ on the rolling window → `BIAS_DRIFT` (direction stated in words).
+3. **Bias drift:** $\lvert \mathit{TS}\rvert>4$ on the rolling window → `BIAS_DRIFT` (direction stated in words).
 4. **Level shift:**
    - Run CUSUM on lag-1 errors.
    - On an alarm, run change-point confirmation on the last 52 periods (or all available ≥ 16): confirmed → `LEVEL_SHIFT`, otherwise `SHIFT_CANDIDATE`.
@@ -200,7 +200,7 @@ def triage(flags):
         if flags.get(key): return cause
     return "UNEXPLAINED"
 ```
-**Test vector** (executed, separate seeds per test):
+**Test vector** (verified, separate seeds per test):
 - **Point anomalies:** 156 weeks of seasonal demand (amplitude 20, noise σ = 3) with +60 injected at t = 80 and −50 at t = 120 → flagged exactly **[80, 120]**.
 - **CUSUM:**
   - Errors with a +1.5σ shift at t = 30 → alarm **UP at t = 32**.
@@ -239,7 +239,7 @@ GROUP BY 1,2,3,4,5;
 ## Metadata (mandatory)
 | Level | Grain | Time window | Error lag (CUSUM / TS) | Decomposition engine | Thresholds | Weighting | Snapshot |
 |---|---|---|---|---|---|---|---|
-| SKU-Location | WEEK | <start–end> | 1 / <decision lag> | median robust (STL cross-check) | 3×IQR; CUSUM k=0.5 h=5; |TS|>4; p<0.01 & ≥20% | VaR = units × margin × ABC 3/2/1 | <id> |
+| SKU-Location | WEEK | <start–end> | 1 / <decision lag> | median robust (STL cross-check) | 3×IQR; CUSUM k=0.5 h=5; \|TS\|>4; p<0.01 & ≥20% | VaR = units × margin × ABC 3/2/1 | <id> |
 
 ## KPI Table
 | Metric | Value | Rule |
@@ -258,7 +258,7 @@ GROUP BY 1,2,3,4,5;
 | ID | Trigger (rule) | item | metric | value | action | owner |
 |---|---|---|---|---|---|---|
 | | LEVEL_SHIFT unexplained (GS-D-04) | | rel change | | re-level / review | Demand planner |
-| | BIAS_DRIFT |TS|>4 (GS-K-06) | | TS | | exception queue | Demand planner |
+| | BIAS_DRIFT \|TS\|>4 (GS-K-06) | | TS | | exception queue | Demand planner |
 | | UOM_SUSPECT / FEED_PARTIAL (GS-D-13) | | | | fix data | Data owner |
 | | OCCURRENCE decline (GS-M-06) | | p | | obsolescence review | Lifecycle planner |
 
@@ -279,5 +279,5 @@ Detector parameters, seeds (none needed; deterministic), engine, snapshot, code 
 - **Gradual drift** (trend change, not a step): CUSUM alarms repeatedly with no confirmed step. After 3 unconfirmed alarms in 13 periods [RoT], flag `TREND_CHANGE` for model re-selection.
 - **Planned events with unexpected magnitude** (a promo that failed): classed as EXPLAINED_EVENT, but the lift deviation is passed to `nextq-promotion-lift-cannibalization-planning`.
 - **Calendar artifacts** (53rd week, Easter moving): check alignment with `nextq-time-bucket-calendar-alignment` before triage. A shift exactly one week long at a year boundary is usually calendar.
-- **Daily streaming:** run detectors on the daily remainder with $m=7$. Confirm weekly before any re-level, so a single noisy day never re-levels a model.
+- **Daily streaming:** run detectors on the daily remainder with $\mathit{m}=7$. Confirm weekly before any re-level, so a single noisy day never re-levels a model.
 - **Phantom inventory** (zero sales with stock on hand): an occurrence or level drop with in-stock = 100%. Route it as `PHANTOM_SUSPECT` to store operations; never re-level until counted.

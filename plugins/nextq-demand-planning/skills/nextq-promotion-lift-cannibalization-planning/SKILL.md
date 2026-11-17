@@ -32,15 +32,15 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-D-05** Promo lift decomposition [STD practice] | **Baseline** $B_t$ = demand without the promotion. Estimate it by (a) causal model counterfactual (promo off, regular price) from `nextq-ml-causal-demand-forecasting` (preferred), or (b) a statistical forecast through the promo window with promo periods **masked** (excluded from fitting). **Gross lift** $L_t=A_t-B_t$; **Lift %** $=(A_t-B_t)/B_t$. **Net incremental volume:** $\text{NetInc}=\sum_{t\in\text{promo}}(A_t-B_t)-\sum_{t\in\text{post}}(B_t-A_t)-\sum_{t\in\text{pre}}(B_t-A_t)-\text{Cannib}+\text{Halo}$. Default windows [RoT]: pre = 1 period, post = 2 periods (weekly). Extend post to 4 for stockpileable categories. Dips are counted only when positive (no negative dips). |
-| **GS-D-06** Cannibalization & halo | **Cannibalization** = loss in the baselines of substitutable items $j$ (same need-state) during the promo of $i$: $\sum_j\sum_{t\in\text{promo}}(B_{j,t}-A_{j,t})^+$. **Halo** = gain in complements $k$: $\sum_k\sum_t(A_{k,t}-B_{k,t})^+$. Estimate them via cross-promo / cross-price regression terms or **test-vs-control** difference-in-differences. Report the **category-level net**. A promo with positive SKU lift but **≤ 0 category net** is flagged `NON_INCREMENTAL_CATEGORY`. Substitutes that were themselves on promo (overlap) are excluded from the cannibalization pool. |
-| **GS-M-11** Censoring | Stockouts during the promo truncate lift. Promo periods with in-stock < 95% are **materially censored**: reconstruct demand (orders, or availability scaling $\hat D=S/a$ capped at ×2 for $a ≥ 0.5$), and flag the event `CENSORED_PROMO` (lift is a lower bound). Never fit a lift library on censored events without the flag. |
+| **GS-D-05** Promo lift decomposition [STD practice] | **Baseline** $\mathit{B}_t$ = demand without the promotion. Estimate it by (a) causal model counterfactual (promo off, regular price) from `nextq-ml-causal-demand-forecasting` (preferred), or (b) a statistical forecast through the promo window with promo periods **masked** (excluded from fitting). **Gross lift** $\mathit{L}_t=A_t-B_t$; **Lift %** $=(A_t-B_t)/B_t$. **Net incremental volume:** $\text{NetInc}=\sum_{t\in\text{promo}}(A_t-B_t)-\sum_{t\in\text{post}}(B_t-A_t)-\sum_{t\in\text{pre}}(B_t-A_t)-\text{Cannib}+\text{Halo}$. Default windows [RoT]: pre = 1 period, post = 2 periods (weekly). Extend post to 4 for stockpileable categories. Dips are counted only when positive (no negative dips). |
+| **GS-D-06** Cannibalization & halo | **Cannibalization** = loss in the baselines of substitutable items $\mathit{j}$ (same need-state) during the promo of $\mathit{i}$: $\sum_j\sum_{t\in\text{promo}}(B_{j,t}-A_{j,t})^+$. **Halo** = gain in complements $\mathit{k}$: $\sum_k\sum_t(A_{k,t}-B_{k,t})^+$. Estimate them via cross-promo / cross-price regression terms or **test-vs-control** difference-in-differences. Report the **category-level net**. A promo with positive SKU lift but **≤ 0 category net** is flagged `NON_INCREMENTAL_CATEGORY`. Substitutes that were themselves on promo (overlap) are excluded from the cannibalization pool. |
+| **GS-M-11** Censoring | Stockouts during the promo truncate lift. Promo periods with in-stock < 95% are **materially censored**: reconstruct demand (orders, or availability scaling $\hat D=S/a$ capped at ×2 for $\mathit{a} ≥ 0.5$), and flag the event `CENSORED_PROMO` (lift is a lower bound). Never fit a lift library on censored events without the flag. |
 | **GS-D-11** Signal | Use **POS/sell-out** for consumer lift. Shipments include retailer forward-buy, so a shipment-based lift must be labeled `SELL_IN_LIFT` and the forward-buy dip measured over a longer post window (default 4–8 weeks) [RoT]. |
 | **GS-M-09 / GS-M-16** | Lift models (regression or ML) are validated by rolling-origin over events. Features must be known in advance (planned depth, display, feature). Look-ahead leakage is prohibited. |
 | **GS-K-07 / GS-K-01 / GS-K-05** | Promo forecast accuracy is scored on promo periods separately: WAPE $\sum\lvert A-F\rvert/\sum A$, and Bias% $\sum(F-A)/\sum A$ (+ = over). The **FVA of the modeled lift** vs. a naïve lift (the item's last comparable event lift, or the category-average lift) must be ≥ 0, or the library is not used for that cell. |
-| **GS-G-06** Financials | Per event: incremental gross margin $=\text{NetInc}\times m_{\text{reg}}-\text{(promo units)}\times(\text{P}_{\text{reg}}-\text{P}_{\text{promo}})_{\text{funded}}-\text{fixed fees}$, where $m_{\text{reg}}$ = regular unit margin. **Promo ROI** $=\dfrac{\text{incremental gross margin}}{\text{total trade spend}}$. Cannibalized units are valued at the **substitute's** margin; halo at the complement's margin. Value conversions use net prices consistently (volume-to-value per GS-G-06). |
+| **GS-G-06** Financials | Per event: incremental gross margin $=\text{NetInc}\times m_{\text{reg}}-\text{(promo units)}\times(\text{P}_{\text{reg}}-\text{P}_{\text{promo}})_{\text{funded}}-\text{fixed fees}$, where $\mathit{m}_{\text{reg}}$ = regular unit margin. **Promo ROI** $=\dfrac{\text{incremental gross margin}}{\text{total trade spend}}$. Cannibalized units are valued at the **substitute's** margin; halo at the complement's margin. Value conversions use net prices consistently (volume-to-value per GS-G-06). |
 | **GS-G-01** Handoff to consensus | Promo forecasts enter `nextq-consensus-demand-review` as PROMO overrides with `evidence_link` = this report. UP > 20% vs. base requires this evidence. |
-| **GS-G-03 / 10 / 11** | Exceptions; standard output; reproducible decomposition (sum check: $A_{\text{promo}}=B+L$ exactly). |
+| **GS-G-03 / 10 / 11** | Exceptions; standard output; reproducible decomposition (sum check: $\mathit{A}_{\text{promo}}=B+L$ exactly). |
 
 **Lift-library pooling rule** [RoT]:
 - **Item-mechanic** level if ≥ 3 clean (uncensored) events.
@@ -67,7 +67,7 @@ metadata:
 
 **`item_groups`**: `item_id, need_state_id, role ∈ {SUBSTITUTE_POOL, COMPLEMENT_OF:<need_state>}` (defines the cannibalization and halo sets).
 
-**`costs`**: `item_id, location_id, unit_cost, regular_net_price` → regular unit margin $m_{\text{reg}}$.
+**`costs`**: `item_id, location_id, unit_cost, regular_net_price` → regular unit margin $\mathit{m}_{\text{reg}}$.
 
 **`baseline_forecasts`**: `item_id, location_id, period, baseline_qty, method ∈ {CAUSAL_CF, MASKED_STAT}` (from `nextq-ml-causal-demand-forecasting` / `nextq-statistical-baseline-forecasting`).
 
@@ -81,18 +81,18 @@ metadata:
 - Library pooling thresholds as above.
 
 ## 4. Execution Workflow
-1. **Event windows.** For each event, set promo periods $[s,e]$, pre = $[s-1]$ (or $s-k_{\text{pre}}$), and post = $[e+1, e+k_{\text{post}}]$. Mark overlapping events on the same item (merged windows, flagged `OVERLAP`) and windows hitting other promos of the same item (dip windows truncated).
+1. **Event windows.** For each event, set promo periods $\left[s,e\right]$, pre = $\left[s-1\right]$ (or $\mathit{s}-k_{\text{pre}}$), and post = $\left[e+1, e+k_{\text{post}}\right]$. Mark overlapping events on the same item (merged windows, flagged `OVERLAP`) and windows hitting other promos of the same item (dip windows truncated).
 2. **Censoring check (GS-M-11):** in-stock < 95% in any promo period → reconstruct and flag `CENSORED_PROMO`.
 3. **Baseline:** use `CAUSAL_CF` if available, else `MASKED_STAT`. The baseline must exclude promo periods **and** dip windows from fitting (no contamination). Log the method.
 4. **Own-item decomposition:**
-   - $L=\sum_{\text{promo}}(A-B)$
+   - $\mathit{L}=\sum_{\text{promo}}(A-B)$
    - $\text{PreDip}=\sum_{\text{pre}}(B-A)^+$
    - $\text{PostDip}=\sum_{\text{post}}(B-A)^+$
    - Verify $\sum_{\text{promo}}A=\sum B+L$ exactly.
 5. **Cannibalization and halo:**
-   - Substitute pool $J$ = same need-state, not on promo in the window, available (in-stock ≥ 95%).
+   - Substitute pool $\mathit{J}$ = same need-state, not on promo in the window, available (in-stock ≥ 95%).
    - $\text{Cannib}=\sum_{j\in J}\sum_{\text{promo}}(B_j-A_j)^+$
-   - Complements $K$: $\text{Halo}=\sum_{k}\sum_{\text{promo}}(A_k-B_k)^+$
+   - Complements $\mathit{K}$: $\text{Halo}=\sum_{k}\sum_{\text{promo}}(A_k-B_k)^+$
    - If `control_map` exists, use **DiD** instead: $\widehat{\text{effect}}=(\bar A^{\text{test}}_{\text{promo}}-\bar A^{\text{test}}_{\text{pre8}})-(\bar A^{\text{ctrl}}_{\text{promo}}-\bar A^{\text{ctrl}}_{\text{pre8}})$ per period × number of promo periods, for the own item, the pool, and complements. Report both methods when available.
 6. **Net incremental:** $\text{NetInc}=L-\text{PreDip}-\text{PostDip}-\text{Cannib}+\text{Halo}$. Category net = NetInc in category units (UoM-harmonized).
 7. **Financials:**
@@ -102,9 +102,9 @@ metadata:
 8. **Lift library:** per mechanic key and pooling level, compute the median and IQR of lift multiplier $\lambda=\sum_{\text{promo}}A/\sum_{\text{promo}}B$, post-dip ratio, and cannibalization ratio $=\text{Cannib}/L$. Exclude `CENSORED_PROMO` and `OVERLAP` events from the median (report them separately).
 9. **Validate the library (rolling-origin over events):** predict each event's $\lambda$ from events before it (same pooling rule), then compute WAPE and Bias% of promo-period forecasts vs. the naïve lift (the last comparable event's λ, or the category median). FVA < 0 → do not use that cell; fall back to the next pooling level.
 10. **Forecast planned promos:**
-    - $F_{\text{promo},t}=B_t\cdot\lambda_{\text{mech}}$
-    - $F_{\text{post},t}=B_t\cdot(1-\text{postdip ratio}_{t})$
-    - Substitute adjustments $F_{j,t}=B_{j,t}-\text{cannib ratio}\cdot L_t\cdot \text{share}_j$, where $\text{share}_j$ = the substitute's share of pool baseline.
+    - $\mathit{F}_{\text{promo},t}=B_t\cdot\lambda_{\text{mech}}$
+    - $\mathit{F}_{\text{post},t}=B_t\cdot(1-\text{postdip ratio}_{t})$
+    - Substitute adjustments $\mathit{F}_{j,t}=B_{j,t}-\text{cannib ratio}\cdot L_t\cdot \text{share}_j$, where $\text{share}_j$ = the substitute's share of pool baseline.
     - Output P10/P90 from the library IQR (scaled).
     - Produce consensus submissions (PROMO reason, evidence link).
 11. **Output** (Section 6).
@@ -148,7 +148,7 @@ def promo_financials(ev, cannib_by_item_margin, halo_by_item_margin, m_own, A_pr
 def pooling_level(n_item_mech, n_subcat_mech):
     return "ITEM" if n_item_mech >= 3 else ("SUBCATEGORY" if n_subcat_mech >= 5 else "CATEGORY_POOLED_LIFT")
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - Weekly, B = 100 every week; A = pre 95, promo 180 / 170, post 80 / 90.
 - Own item: gross lift = 150, pre-dip = 5, post-dip = 30, λ = 1.75.
 - Substitutes lose 40 units and complements gain 10, so NetInc = 150 − 5 − 30 − 40 + 10 = **85**.
@@ -231,4 +231,4 @@ Baseline version ids, window lengths, need-state map version, control map, pooli
 - **Negative gross lift:** report it, do not floor it. Flag `NEGATIVE_LIFT` and investigate execution (no display, out of stock, price not applied).
 - **Price-only events** (TPR without display/feature): the mechanic key separates them. Do not pool them with display or feature events.
 - **Retailer forward buy** (sell-in spike, flat POS): compute both sell-in and sell-out lift. Use the sell-out lift for consumer incrementality and the sell-in lift for shipment planning, and show the dip in shipments over 4–8 weeks.
-- **Cannibalization exceeding the substitute baseline gap:** cap each $(B_j-A_j)^+$ at $B_j$, and flag it if the pool's baseline model has MASE > 1 (the baseline is unreliable).
+- **Cannibalization exceeding the substitute baseline gap:** cap each $\left(B_j-A_j\right)^+$ at $\mathit{B}_j$, and flag it if the pool's baseline model has MASE > 1 (the baseline is unreliable).

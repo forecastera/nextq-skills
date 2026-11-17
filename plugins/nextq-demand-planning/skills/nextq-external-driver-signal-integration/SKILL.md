@@ -29,13 +29,15 @@ metadata:
 - Price elasticity estimates for the promotion and financial skills.
 - A feature-store specification consumed by `nextq-ml-causal-demand-forecasting`, `nextq-statistical-baseline-forecasting` (dynamic regression) and `nextq-short-horizon-demand-sensing`.
 
+**Data scope:** use only driver data the user provides. Do not retrieve weather, search, social or macro data from external sources; if a driver is missing, ask the user for it.
+
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-09** ML / causal controls | Time-ordered rolling-origin validation only (no random K-fold). **No look-ahead leakage:** features must be known at forecast time $t-\ell$. Future promo and price are allowed only if **planned and locked**. A model with drivers must beat NF1/NF2 **and** the best statistical model (FVA ≥ 0). Report importance or coefficients, and bias by segment. |
+| **GS-M-09** ML / causal controls | Time-ordered rolling-origin validation only (no random K-fold). **No look-ahead leakage:** features must be known at forecast time $\mathit{t}-\ell$. Future promo and price are allowed only if **planned and locked**. A model with drivers must beat NF1/NF2 **and** the best statistical model (FVA ≥ 0). Report importance or coefficients, and bias by segment. |
 | **GS-M-16** Backtesting | Rolling origin (expanding or sliding). The test horizon covers the maximum decision horizon. Score **by lag**; never average across lags without reporting each. Minimum 3 origins, or 1 seasonal cycle of origins for seasonal items [RoT]. |
 | **GS-K-07** FVA | $\text{FVA}_\ell=\text{WAPE}_\ell(\text{without drivers})-\text{WAPE}_\ell(\text{with drivers})$, same items, lag and window. WAPE $=\sum\lvert A-F\rvert/\sum A$. |
-| **GS-D-05** Price / promo | Promo and price effects are estimated with regression terms (or masked baselines). Lift = $A-B$. Own-price elasticity from $\ln Q=a+\varepsilon\ln P+\dots$ Promo lift libraries live in `nextq-promotion-lift-cannibalization-planning`; this skill supplies elasticity and the price feature. |
+| **GS-D-05** Price / promo | Promo and price effects are estimated with regression terms (or masked baselines). Lift = $\mathit{A}-B$. Own-price elasticity from $\ln Q=a+\varepsilon\ln P+\dots$ Promo lift libraries live in `nextq-promotion-lift-cannibalization-planning`; this skill supplies elasticity and the price feature. |
 | **GS-D-10** Calendars & events | 53rd week handled explicitly (drop, merge or dummy). **Moving holidays** (Easter, Lunar New Year, Diwali, Eid, Thanksgiving) need event dummies placed by the actual date in each year, not by week number. Year-over-year features align like weeks. |
 | **GS-D-09** Buckets | Daily drivers are aggregated to the demand bucket on the fiscal calendar, using the same week-ending day (mean for intensities such as temperature, sum for counts such as rainfall days). |
 | **GS-M-11** Censoring | Driver effects are estimated on unconstrained demand. Stockout periods would bias elasticity and weather effects toward zero. |
@@ -43,11 +45,11 @@ metadata:
 
 **Driver classes and leakage gate (deterministic):**
 
-| Class | Examples | Usable at horizon $h$ | Backtest must use |
+| Class | Examples | Usable at horizon $\mathit{h}$ | Backtest must use |
 |---|---|---|---|
-| `KNOWN_FUTURE` | calendar, holidays, store openings, **locked** planned price and promo | any $h$ | the plan as it stood at the origin |
+| `KNOWN_FUTURE` | calendar, holidays, store openings, **locked** planned price and promo | any $\mathit{h}$ | the plan as it stood at the origin |
 | `FORECASTED` | weather forecasts, macro forecasts | only with **archived vintages** | the vintage issued ≤ origin; realized values are an oracle (`ORACLE_RISK`, not production-eligible) |
-| `REALIZED_ONLY` | search trends, social, competitor prices, others' POS | lags ≥ $h$ + publication lag | lagged values only |
+| `REALIZED_ONLY` | search trends, social, competitor prices, others' POS | lags ≥ $\mathit{h}$ + publication lag | lagged values only |
 
 **Acceptance rule [RoT]:** a driver group is accepted for a lag if:
 - FVA ≥ 0.5 WAPE points,
@@ -103,13 +105,14 @@ import numpy as np, pandas as pd
 
 DRIVER_CLASSES = ("KNOWN_FUTURE", "FORECASTED", "REALIZED_ONLY")
 
-def usable(driver_class, h, publish_lag=0, has_vintages=False, locked=False):
+def usable(driver_class, h, publish_lag=0, has_vintages=False, locked=False, needs_lock=False):
     """GS-M-09 leakage gate for horizon h (periods ahead of origin t0).
     KNOWN_FUTURE (calendar, holidays, *locked* planned price/promo): usable at any h.
+    needs_lock=True for planned price/promo, which must be locked; False for calendar/holidays.
     FORECASTED (weather, macro forecasts): usable only with archived as-of vintages; else ORACLE_RISK.
     REALIZED_ONLY (search, social, POS of others): only lags >= h + publish_lag, i.e. value known at t0."""
     if driver_class == "KNOWN_FUTURE":
-        return (True, "OK") if locked or publish_lag == 0 else (False, "NOT_LOCKED")
+        return (False, "NOT_LOCKED") if needs_lock and not locked else (True, "OK")
     if driver_class == "FORECASTED":
         return (True, "VINTAGE") if has_vintages else (False, "ORACLE_RISK")
     if driver_class == "REALIZED_ONLY":
@@ -171,7 +174,7 @@ def event_dummies(dates, event_dates, pre=1, post=1, freq="W"):
             if pos + k < len(idx): out.iloc[pos + k, 2] = 1
     return out
 ```
-**Test vector** (executed, seed 11):
+**Test vector** (verified, seed 11):
 - **Leakage gate:**
   - Locked planned price → OK. Unlocked → `NOT_LOCKED`.
   - Weather forecast without vintages → `ORACLE_RISK`; with vintages → VINTAGE.
@@ -249,6 +252,6 @@ Catalog version, vintage snapshot, origins, lags, acceptance thresholds, seed, c
 - **Holidays falling across a week boundary:** apportion the event dummy by day share, or use daily modeling.
 - **Collinear drivers** (temperature and month seasonality): weather enters as an **anomaly**, so seasonality stays in the seasonal terms. If the condition number of the design is above 1,000 [RoT], drop or combine terms.
 - **Price endogeneity** (price cut in response to weak demand): flag `ENDOGENEITY_RISK` when price changes follow demand drops, and prefer planned, exogenous price events for estimation.
-- **Search or social data rescaled by the provider** (relative indices): re-download a consistent window and use growth rates.
+- **Search or social data rescaled by the provider** (relative indices): ask the user to supply a consistent, re-pulled window and use growth rates.
 - **New items:** use pooled category elasticities and driver effects; never fit item-level effects on fewer than 26 weeks.
 - **COVID-type regime breaks:** exclude the break window or add regime dummies (`nextq-demand-anomaly-shift-detection`), and do not let it dominate driver coefficients.

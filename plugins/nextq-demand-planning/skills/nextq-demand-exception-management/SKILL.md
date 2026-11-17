@@ -33,26 +33,26 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-G-03** Trigger set [RoT, configurable] | (1) $\lvert TS\rvert>4$. (2) $\lvert\text{Bias\%}\rvert>10\%$ at decision level for the last 3 cycles (15% for intermittent / lumpy). (3) MASE > 1.0 on the rolling window. (4) FVA of final vs. naïve < 0. (5) Forecast change vs. last cycle > ±25% inside the frozen horizon. (6) Censored-history share > 30%. (7) Forward DOS < safety-stock days (shortage) or > max days / shelf life (excess). (8) Prediction-interval coverage off nominal by > 5 pp. (9) Unreconciled hierarchy delta > 0.5% at any node. Each exception lists **cause, impact (units and value), recommended action**. **Prioritize by value at risk** = \|units at risk\| × unit margin (or cost) × ABC/XYZ weight; show the top N only. |
+| **GS-G-03** Trigger set [RoT, configurable] | (1) $\lvert \mathit{TS}\rvert>4$. (2) $\lvert\text{Bias\%}\rvert>10\%$ at decision level for the last 3 cycles (15% for intermittent / lumpy). (3) MASE > 1.0 on the rolling window. (4) FVA of final vs. naïve < 0. (5) Forecast change vs. last cycle > ±25% inside the frozen horizon. (6) Censored-history share > 30%. (7) Forward DOS < safety-stock days (shortage) or > max days / shelf life (excess). (8) Prediction-interval coverage off nominal by > 5 pp. (9) Unreconciled hierarchy delta > 0.5% at any node. Each exception lists **cause, impact (units and value), recommended action**. **Prioritize by value at risk** = \|units at risk\| × unit margin (or cost) × ABC/XYZ weight; show the top N only. |
 | **GS-K-06** Tracking signal | $\mathit{TS}=\sum(A_i-F_i)/\text{MAD}$ over a rolling window (13 weeks / 6 months [RoT]). **Positive = under-forecast.** Same function as `nextq-forecast-accuracy-diagnostics`. |
 | **GS-K-05** Bias | $\text{Bias\%}=\sum(F-A)/\sum A\times100$, **positive = over-forecast** (opposite sign to TS: state the direction in words). |
-| **GS-K-04** MASE | $q_j=e_j/\big(\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert\big)$, $\text{MASE}=\text{mean}\lvert q_j\rvert$, scaled by the training in-sample (seasonal) naïve MAE. > 1 = worse than in-sample naïve. Scale ≈ 0 → `SCALE_ZERO`, fall back to WAPE. |
+| **GS-K-04** MASE | $\mathit{q}_j=e_j/\big(\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert\big)$, $\text{MASE}=\text{mean}\lvert q_j\rvert$, scaled by the training in-sample (seasonal) naïve MAE. > 1 = worse than in-sample naïve. Scale ≈ 0 → `SCALE_ZERO`, fall back to WAPE. |
 | **GS-K-07** FVA | $\text{FVA}=\text{Err}(\text{naïve})-\text{Err}(\text{final})$ in WAPE points, same items and lag. < 0 = the process destroys value. |
 | **GS-G-09** Segmentation | ABC (value) × XYZ (forecastability) sets review frequency (A weekly, B biweekly, C monthly [RoT]) and weights. **ABC weights A = 3, B = 2, C = 1 [RoT]** (identical to the accuracy skill). |
 | **GS-G-10** Output contract | Executive summary, KPI table with lag/level/window/N, exceptions table (ID, trigger with GS rule, item/location, units, value, action, owner), recommendations, data-quality log, reproducibility block. |
 
-**Units at risk per trigger** (documented convention; $F_{LT}$ = forecast units over the next lead time):
+**Units at risk per trigger** (documented convention; $\mathit{F}_{LT}$ = forecast units over the next lead time):
 
 | Trigger | Units at risk | Valued at |
 |---|---|---|
 | TS_OUT_OF_CONTROL | $\lvert\sum_{\text{window}}(F-A)\rvert$ | margin |
 | BIAS_PERSISTENT | $\lvert\text{Bias\%}\rvert/100\cdot F_{LT}$ | margin |
-| MASE_GT_1 | $(\text{MAE}_{\text{model}}-\text{MAE}_{\text{naïve}})^+\cdot$ LT periods | margin |
+| MASE_GT_1 | $\left(\text{MAE}_{\text{model}}-\text{MAE}_{\text{naïve}}\right)^+\cdot$ LT periods | margin |
 | FVA_NEGATIVE | $\lvert\text{FVA}\rvert/100\cdot F_{LT}$ | margin |
 | FROZEN_SWING | $\lvert\Delta\%\rvert/100\cdot F_{\text{last, frozen}}$ | margin |
 | CENSORED_HISTORY | recent lost units ($\hat D-S$) from reconstruction | margin |
-| SHORTAGE_DOS | $(\text{SS days}-\text{DOS})\cdot$ daily forecast | margin |
-| EXCESS_DOS | $(\text{DOS}-\text{max days})\cdot$ daily forecast | **cost** |
+| SHORTAGE_DOS | $\left(\text{SS days}-\text{DOS}\right)\cdot$ daily forecast | margin |
+| EXCESS_DOS | $\left(\text{DOS}-\text{max days}\right)\cdot$ daily forecast | **cost** |
 | PI_MISCALIBRATED | $\lvert\text{coverage gap pp}\rvert/100\cdot F_{LT}$ | margin |
 | UNRECONCILED | $\lvert\text{parent}-\sum\text{children}\rvert$ | margin |
 
@@ -201,7 +201,7 @@ def hysteresis(ts_series, open_at=4.0, close_at=3.0, clear_cycles=2):
         out.append(state)
     return out
 ```
-**Test vector** (executed). The base row is all clear: margin 2, cost 5, $F_{LT}$ = 400, LT = 4 periods, daily forecast 10, SS days 10, max days 60.
+**Test vector** (verified). The base row is all clear: margin 2, cost 5, $\mathit{F}_{LT}$ = 400, LT = 4 periods, daily forecast 10, SS days 10, max days 60.
 - **I1** (A item): TS = −5.2 with Σ(F−A) = 120, and Bias +14% for 3 cycles.
   - TS VaR = 120 × 2 × 3 = 720.
   - Bias VaR = 0.14 × 400 × 2 × 3 = 336.

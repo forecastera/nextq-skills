@@ -31,11 +31,11 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-01** Error / lag | $e_t = A_t - F_t$. Every score states **lag ℓ** (forecast frozen at $t-\ell$), **level**, **window**, and **weighting**. Default decision lag = cumulative lead time or frozen zone (for example, lag 2 weeks or lag 1 month) [RoT]. |
-| **GS-M-02** Benchmark first | **NF1 naïve:** $\hat y_{T+h\mid T} = y_T$. **NF2 seasonal naïve:** $\hat y_{T+h\mid T} = y_{T+h-m(k+1)}$, with $k=\lfloor (h-1)/m\rfloor$. Optional: 52-week or 12-month moving average. A candidate that does not beat the appropriate naïve model (NF2 if seasonal, else NF1) out of sample at the decision lag is **rejected**. If nothing beats naïve, the naïve model is the production baseline and the series is flagged `NAIVE_WINS`. |
-| **GS-M-04** Selection order | Clean → classify → candidate set → rolling-origin backtest → pick on the primary metric → bias check → (reconcile in A6). **Within a family:** min **AICc** (ETS over admissible error/trend/season combos per Hyndman et al. 2002; ARIMA by Hyndman-Khandakar stepwise AICc). **Across families:** rolling-origin CV only. Weekly ($m≈52.18$): STL + non-seasonal ETS, or DHR with Fourier $K$ by AICc. Daily: multi-seasonal (weekly + annual) via STL/MSTL or DHR, plus holiday/moving-event dummies. Short series: min AICc acceptable; no "30-observation" rule. |
-| **GS-M-05** ES/ARIMA essentials | SES $\ell_t=\alpha y_t+(1-\alpha)\ell_{t-1}$. ETS(A,A,A): $\hat y_{t+h|t}=\ell_t+hb_t+s_{t+h-m(k+1)}$. Damped trend is allowed and preferred for horizons > 1 year [RoT]. If a Box-Cox/log transform is used, **bias-adjust** back-transformed forecasts to the mean (FPP3 eq. 5.3; log case $\hat y = e^{\hat w}(1+\sigma_h^2/2)$). This is mandatory because forecasts are summed in hierarchies and finance. Report Ljung-Box ($\ell=10$ non-seasonal, $2m$ seasonal, capped at $T/5$) but **never select on it**. |
-| **GS-M-10** Probabilistic | Emit quantiles {0.1, 0.5, 0.9} plus any service quantiles requested. Normal PI: $\hat y \pm c\,\hat\sigma_h$ (80% c = 1.28, 95% c = 1.96). Use bootstrapped residual paths when residuals are non-normal. Lead-time totals come from summed **sample paths**, never summed quantiles. Score with pinball loss $Q_{p,t}$ ($2(1-p)(f-y)$ if $y<f$, else $2p(y-f)$) and coverage. |
+| **GS-M-01** Error / lag | $\mathit{e}_t = A_t - F_t$. Every score states **lag ℓ** (forecast frozen at $\mathit{t}-\ell$), **level**, **window**, and **weighting**. Default decision lag = cumulative lead time or frozen zone (for example, lag 2 weeks or lag 1 month) [RoT]. |
+| **GS-M-02** Benchmark first | **NF1 naïve:** $\hat y_{T+h\mid T} = y_T$. **NF2 seasonal naïve:** $\hat y_{T+h\mid T} = y_{T+h-m(k+1)}$, with $\mathit{k}=\lfloor (h-1)/m\rfloor$. Optional: 52-week or 12-month moving average. A candidate that does not beat the appropriate naïve model (NF2 if seasonal, else NF1) out of sample at the decision lag is **rejected**. If nothing beats naïve, the naïve model is the production baseline and the series is flagged `NAIVE_WINS`. |
+| **GS-M-04** Selection order | Clean → classify → candidate set → rolling-origin backtest → pick on the primary metric → bias check → (reconcile in A6). **Within a family:** min **AICc** (ETS over admissible error/trend/season combos per Hyndman et al. 2002; ARIMA by Hyndman-Khandakar stepwise AICc). **Across families:** rolling-origin CV only. Weekly ($\mathit{m}≈52.18$): STL + non-seasonal ETS, or DHR with Fourier $\mathit{K}$ by AICc. Daily: multi-seasonal (weekly + annual) via STL/MSTL or DHR, plus holiday/moving-event dummies. Short series: min AICc acceptable; no "30-observation" rule. |
+| **GS-M-05** ES/ARIMA essentials | SES $\ell_t=\alpha y_t+(1-\alpha)\ell_{t-1}$. ETS(A,A,A): $\hat y_{t+h|t}=\ell_t+hb_t+s_{t+h-m(k+1)}$. Damped trend is allowed and preferred for horizons > 1 year [RoT]. If a Box-Cox/log transform is used, **bias-adjust** back-transformed forecasts to the mean (FPP3 eq. 5.3; log case $\hat y = e^{\hat w}(1+\sigma_h^2/2)$). This is mandatory because forecasts are summed in hierarchies and finance. Report Ljung-Box ($\ell=10$ non-seasonal, $2m$ seasonal, capped at $\mathit{T}/5$) but **never select on it**. |
+| **GS-M-10** Probabilistic | Emit quantiles {0.1, 0.5, 0.9} plus any service quantiles requested. Normal PI: $\hat y \pm c\,\hat\sigma_h$ (80% c = 1.28, 95% c = 1.96). Use bootstrapped residual paths when residuals are non-normal. Lead-time totals come from summed **sample paths**, never summed quantiles. Score with pinball loss $\mathit{Q}_{p,t}$ ($2(1-p)(f-y)$ if $\mathit{y}<f$, else $2p(y-f)$) and coverage. |
 | **GS-M-15** Combination | If no single model wins by > 2% relative MASE across origins [RoT], use the **equal-weight** mean of the top 2–3 (Bates & Granger 1969; FPP3 §13.4). |
 | **GS-M-16** Rolling origin | Expanding window. Horizon ≥ the max decision horizon. ≥ 3 origins, or 1 full seasonal cycle of origins for seasonal items [RoT]. Score **per lag**, and never average across horizons without reporting each lag. Holdout ≈ 20% for a single split. |
 | **GS-K-01** WAPE | $\text{WAPE}=\sum\lvert A-F\rvert/\sum\lvert A\rvert \times 100$. Primary **portfolio** metric. Undefined if $\sum A=0$. |
@@ -87,8 +87,8 @@ metadata:
    - If variance grows with level (correlation of rolling mean and rolling SD > 0.5 [RoT]), also test log(y+1) or Box-Cox variants.
    - Back-transform with bias adjustment (GS-M-05).
 4. **Rolling-origin backtest (GS-M-16).**
-   - Set origins $T_0, T_0+s, \dots$ ($s$ = step, default 1 period for monthly or 4 for weekly), with the last origin at $T-H_{eval}$, where $H_{eval}=\max(\text{decision\_lag}, \text{eval horizon})$.
-   - At each origin, refit on data ≤ origin only (**no look-ahead**: outlier flags and imputation must use only data available at that origin when causal; otherwise document) and forecast $h=1..H_{eval}$.
+   - Set origins $\mathit{T}_0, T_0+s, \dots$ ($\mathit{s}$ = step, default 1 period for monthly or 4 for weekly), with the last origin at $\mathit{T}-H_{\mathrm{bt}}$, where $\mathit{H}_{\mathrm{bt}}=\max(\text{decision\_lag}, \text{backtest horizon})$.
+   - At each origin, refit on data ≤ origin only (**no look-ahead**: outlier flags and imputation must use only data available at that origin when causal; otherwise document) and forecast $\mathit{h}=1..H_{\mathrm{bt}}$.
    - Store `(origin, h, F, quantiles)`.
 5. **Score per series, per lag.**
    - Compute MASE (scale from the origin's training window), Bias%, pinball, and coverage.
@@ -98,7 +98,7 @@ metadata:
    - Apply the combination rule (GS-M-15).
    - If no candidate passes the gates, use the production model = naïve (NF2 if seasonal else NF1) and flag `NAIVE_WINS`.
 7. **Final fit and forecast.**
-   - Refit the winner on all history and forecast $h = 1..H$.
+   - Refit the winner on all history and forecast $\mathit{h} = 1..H$.
    - Produce the mean (bias-adjusted), quantiles, and 1,000 sample paths (seeded) for lead-time aggregation.
    - Floor negatives at 0 and log the count.
 8. **Diagnostics:** Ljung-Box p-value, residual mean (should be ≈ 0; otherwise bias), and change vs. last cycle's forecast within the frozen horizon.
@@ -106,12 +106,12 @@ metadata:
 
 ## 5. Verification Snippets
 ```python
-# Rolling-origin backtest with Nixtla statsforecast (pip install statsforecast)
+# Rolling-origin backtest with Nixtla statsforecast (if available; otherwise statsmodels ETS/ARIMA)
 import numpy as np, pandas as pd
 from statsforecast import StatsForecast
 from statsforecast.models import Naive, SeasonalNaive, AutoETS, AutoARIMA, WindowAverage, MSTL
 
-m, H, lag = 52, 13, 2                      # weekly, 13-week eval horizon, decision lag 2
+m, H, lag = 52, 13, 2                      # weekly, 13-week evaluation horizon, decision lag 2
 df = demand[["unique_id", "ds", "y"]]       # unique_id = item|loc, ds = week start, y = demand_clean
 models = [Naive(), SeasonalNaive(season_length=m), WindowAverage(window_size=m),
           # weekly: STL + non-seasonal ETS (GS-M-04); ETS with m=52 is not used
@@ -174,7 +174,7 @@ GROUP BY model;
 - Model mix: ETS a%, ARIMA b%, STL+ETS c%, DHR d%, Combination e%, Naïve f%.
 
 ## Metadata (mandatory on every KPI table)
-| Level | Grain | Lag | Time window (eval) | Origins | Horizon | Weighting | Actuals basis |
+| Level | Grain | Lag | Time window (evaluation) | Origins | Horizon | Weighting | Actuals basis |
 |---|---|---|---|---|---|---|---|
 | SKU-Location | WEEK (W-SAT) | 2 | <start–end> | 13 | 13 | WAPE volume-weighted; MASE unweighted median | unconstrained (cleansed), % reconstructed <r>% |
 
@@ -204,7 +204,7 @@ GROUP BY model;
 | ID | Trigger (rule, threshold) | item | loc | metric value | units at risk | value at risk | action | owner |
 |---|---|---|---|---|---|---|---|---|
 | | MASE>1.0 (GS-G-03) | | | | | | review data/route; consider ML or intermittent | |
-| | |Bias%|>10% 3 origins (GS-K-05) | | | | | | investigate level shift / censoring | |
+| | \|Bias%\|>10% 3 origins (GS-K-05) | | | | | | investigate level shift / censoring | |
 | | NAIVE_WINS (GS-M-02) | | | | | | use naïve in production; model review | |
 | | Coverage off >5pp (GS-K-14) | | | | | | bootstrap intervals / transform | |
 | | Δ vs last cycle >±25% in frozen zone (GS-G-03) | | | | | | planner confirmation | |

@@ -17,15 +17,15 @@
 
 | Symbol | Meaning |
 |---|---|
-| $A_t$ (or $y_t$) | Actual demand in period $t$. Use unconstrained demand where available; see GS-M-11. |
-| $F_t$ (or $\hat y_t$) | Forecast for period $t$, frozen at a stated lag $\ell$ (written $F_{t\mid t-\ell}$) |
-| $e_t = A_t - F_t$ | Forecast error. Sign convention: Hyndman & Athanasopoulos, FPP3 §5.8 |
-| $n$ | Number of evaluation periods (or item-periods) |
-| $m$ | Seasonal period (12 monthly, 52 weekly, 7 daily-weekly) |
-| $L$, $R$ | Replenishment lead time and review period, in base time buckets |
+| $\mathit{A}_t$ (or $\mathit{y}_t$) | Actual demand in period $\mathit{t}$. Use unconstrained demand where available; see GS-M-11. |
+| $\mathit{F}_t$ (or $\hat y_t$) | Forecast for period $\mathit{t}$, frozen at a stated lag $\ell$ (written $\mathit{F}_{t\mid t-\ell}$) |
+| $\mathit{e}_t = A_t - F_t$ | Forecast error. Sign convention: Hyndman & Athanasopoulos, FPP3 §5.8 |
+| $\mathit{n}$ | Number of evaluation periods (or item-periods) |
+| $\mathit{m}$ | Seasonal period (12 monthly, 52 weekly, 7 daily-weekly) |
+| $\mathit{L}$, $\mathit{R}$ | Replenishment lead time and review period, in base time buckets |
 | $\Phi,\ \phi$ | Standard normal CDF and PDF |
 
-**GS-M-01 Error-sign and lag convention [STD].** Use $e_t = A_t - F_t$. Every accuracy figure must state: (a) the **lag** at which the forecast was frozen, (b) the **aggregation level** (for example, SKU-DC-week), (c) the **time window**, and (d) the **weighting**. By default, measure at the lag that matches the cumulative lead time or the decision frozen zone [RoT]. A forecast that is not frozen at a known lag must not be scored.
+**GS-M-01 Error-sign and lag convention [STD].** Use $\mathit{e}_t = A_t - F_t$. Every accuracy figure must state: (a) the **lag** at which the forecast was frozen, (b) the **aggregation level** (for example, SKU-DC-week), (c) the **time window**, and (d) the **weighting**. By default, measure at the lag that matches the cumulative lead time or the decision frozen zone [RoT]. A forecast that is not frozen at a known lag must not be scored.
 
 ---
 
@@ -34,7 +34,7 @@
 ### GS-M-02 Benchmark first [STD]
 Every forecasting skill must produce and score these naïve benchmarks:
 - **Naïve (NF1, random walk):** $\hat y_{T+h\mid T} = y_T$
-- **Seasonal naïve (NF2):** $\hat y_{T+h\mid T} = y_{T+h-m(k+1)}$, where $k=\lfloor (h-1)/m \rfloor$
+- **Seasonal naïve (NF2):** $\hat y_{T+h\mid T} = y_{T+h-m(k+1)}$, where $\mathit{k}=\lfloor (h-1)/m \rfloor$
 - **Mean / moving average:** optional third benchmark (SAS/Gilliland allow a simple moving average as a naïve model)
 
 If a candidate model does not beat the appropriate naïve benchmark out of sample, it is not used. This follows FPP3 §5.2 ("If not, the new method is not worth considering.") and Gilliland's FVA framework.
@@ -68,17 +68,17 @@ $$\text{ADI} = \frac{\text{number of periods}}{\text{number of periods with } y_
 - **SES:** $\ell_t = \alpha y_t + (1-\alpha)\ell_{t-1}$, $\hat y_{t+h\mid t}=\ell_t$, $0<\alpha<1$
 - **ETS(A,A,A) (additive Holt-Winters):** $\hat y_{t+h|t} = \ell_t + h b_t + s_{t+h-m(k+1)}$
 - If a Box-Cox/log transform is used, point forecasts must be **bias-adjusted back to the mean** before aggregation, because medians do not add (FPP3 §5.6). This is mandatory whenever forecasts feed hierarchy sums or financials.
-- Residual diagnostics (Ljung-Box, with $\ell=10$ for non-seasonal data or $2m$ for seasonal data, capped at $T/5$) are reported, but they are **not** used to select among models (FPP3 §5.4).
+- Residual diagnostics (Ljung-Box, with $\ell=10$ for non-seasonal data or $2m$ for seasonal data, capped at $\mathit{T}/5$) are reported, but they are **not** used to select among models (FPP3 §5.4).
 
 ### GS-M-06 Intermittent-demand estimators (exact) [STD]
-Let $z$ be the smoothed non-zero demand size, $p$ the smoothed inter-demand interval, and $q$ the periods since the last demand.
+Let $\mathit{z}$ be the smoothed non-zero demand size, $\mathit{p}$ the smoothed inter-demand interval, and $\mathit{q}$ the periods since the last demand.
 
-- **Croston (1972).** Update only when $y_t>0$:
-  $z_t = \alpha y_t + (1-\alpha) z_{t-1}$, $\ p_t = \alpha q + (1-\alpha) p_{t-1}$. Forecast: $\hat y = z_t/p_t$. Croston is **positively biased** (Syntetos & Boylan 2001), so it is not the default.
+- **Croston (1972).** Update only when $\mathit{y}_t>0$:
+  $\mathit{z}_t = \alpha y_t + (1-\alpha) z_{t-1}$, $\ p_t = \alpha q + (1-\alpha) p_{t-1}$. Forecast: $\hat y = z_t/p_t$. Croston is **positively biased** (Syntetos & Boylan 2001), so it is not the default.
 - **SBA (Syntetos & Boylan 2005).** $\hat y = \left(1-\frac{\alpha}{2}\right)\frac{z_t}{p_t}$, where $\alpha$ is the interval smoothing constant. This is the **default** intermittent estimator.
 - **TSB (Teunter, Syntetos & Babai 2011).** Let $\pi$ be the demand-occurrence probability, updated **every** period:
-  - If $y_t>0$: $\pi_t=\pi_{t-1}+\beta(1-\pi_{t-1})$ and $z_t=z_{t-1}+\alpha(y_t-z_{t-1})$
-  - If $y_t=0$: $\pi_t=\pi_{t-1}+\beta(0-\pi_{t-1})$ and $z_t=z_{t-1}$
+  - If $\mathit{y}_t>0$: $\pi_t=\pi_{t-1}+\beta(1-\pi_{t-1})$ and $\mathit{z}_t=z_{t-1}+\alpha(y_t-z_{t-1})$
+  - If $\mathit{y}_t=0$: $\pi_t=\pi_{t-1}+\beta(0-\pi_{t-1})$ and $\mathit{z}_t=z_{t-1}$
   - Forecast: $\hat y=\pi_t z_t$
   
   TSB is unbiased and decays toward zero during long zero runs, so it is **required** for items with obsolescence/end-of-life risk and for dead-stock decisions.
@@ -103,7 +103,7 @@ Let $z$ be the smoothed non-zero demand size, $p$ the smoothed inter-demand inte
 - **Allowed when:** there are many related series, causal features, and enough history. Gradient-boosted trees and global models led the M5 competition (Makridakis, Spiliotis & Assimakopoulos 2022) [EVID].
 - **Mandatory controls:**
   - Time-ordered rolling-origin validation only. No random K-fold across time.
-  - No look-ahead leakage. Features must be known at forecast time $t-\ell$. Future promo and price are allowed only if they are planned and locked.
+  - No look-ahead leakage. Features must be known at forecast time $\mathit{t}-\ell$. Future promo and price are allowed only if they are planned and locked.
   - Must beat NF1/NF2 **and** the best statistical model on the primary metric (FVA ≥ 0).
   - Report feature importance and bias by segment.
   - Use a loss function aligned with the decision: Tweedie or Poisson for counts or intermittent series, quantile (pinball) loss for service-level targets.
@@ -111,14 +111,14 @@ Let $z$ be the smoothed non-zero demand size, $p$ the smoothed inter-demand inte
 ### GS-M-10 Probabilistic forecasts [STD]
 - Point forecasts are insufficient for inventory decisions. Provide quantiles or intervals.
 - **Pinball / quantile score (FPP3 §5.9):**
-  $$Q_{p,t}= \begin{cases}2(1-p)(f_{p,t}-y_t) & y_t<f_{p,t}\\ 2p(y_t-f_{p,t}) & y_t\ge f_{p,t}\end{cases}$$
+  $$\mathit{Q}_{p,t}= \begin{cases}2(1-p)(f_{p,t}-y_t) & y_t<f_{p,t}\\ 2p(y_t-f_{p,t}) & y_t\ge f_{p,t}\end{cases}$$
 - **Winkler score** for intervals and **CRPS** for full distributions. Use skill scores relative to the naïve model for cross-series comparison.
 - **Aggregate-over-horizon intervals** (for example, lead-time demand) must come from **simulated sample paths summed per path**, not from summed quantiles (FPP3 §13.5).
 
 ### GS-M-11 Stockout censoring and unconstrained-demand reconstruction (mandatory edge case)
 Recorded sales equal $\min(D_t, \text{available}_t)$. Training on raw sales during stockouts **biases forecasts downward** and creates a self-reinforcing under-stocking loop.
 
-1. **Detect censoring.** Flag period $t$ as censored if any of these holds:
+1. **Detect censoring.** Flag period $\mathit{t}$ as censored if any of these holds:
    - On-hand at period start or end ≤ 0
    - In-stock rate (share of time or store-days in stock) is below 100%
    - Backorders or lost-order logs are greater than 0
@@ -127,30 +127,30 @@ Recorded sales equal $\min(D_t, \text{available}_t)$. Training on raw sales duri
    Default: treat a period as **materially censored** if in-stock rate is below 95% [RoT].
 2. **Reconstruct.** Use the first applicable method:
    - **(a) Backorder/order data:** if the system records orders (B2B), unconstrained demand = orders received (requested quantity and date), not shipments.
-   - **(b) Availability scaling:** $\hat D_t = S_t / a_t$, where $a_t$ is the in-stock fraction weighted by the intraperiod demand profile (for example, the intraday or day-of-week curve). Cap the uplift at ×2 or use method (c) when $a_t<0.5$ [RoT].
-   - **(c) Model-based:** treat $S_t$ as right-censored and estimate by EM or a Tobit-type likelihood (for example, Tobit exponential smoothing). For substitutable items, use EM with choice models (Vulcano, van Ryzin & Ratliff 2012).
+   - **(b) Availability scaling:** $\hat D_t = S_t / a_t$, where $\mathit{a}_t$ is the in-stock fraction weighted by the intraperiod demand profile (for example, the intraday or day-of-week curve). Cap the uplift at ×2 or use method (c) when $\mathit{a}_t<0.5$ [RoT].
+   - **(c) Model-based:** treat $\mathit{S}_t$ as right-censored and estimate by EM or a Tobit-type likelihood (for example, Tobit exponential smoothing). For substitutable items, use EM with choice models (Vulcano, van Ryzin & Ratliff 2012).
    - **(d) Last resort:** replace with the model's fitted or interpolated value and mark it as imputed.
 3. **Document** the share of history reconstructed per SKU. If more than 30% of periods are reconstructed, flag the forecast as **low confidence** [RoT].
 4. **Substitution:** when demand transfers to substitutes, do not double-count. Reconstructed demand for the out-of-stock item must be netted against substitute uplift where it is measurable (GS-D-06).
 5. **KPI rule:** score accuracy against unconstrained actuals, and report constrained (sales) accuracy separately.
 
 ### GS-M-12 Safety stock: Cycle Service Level target [STD]
-- **CSL = P(no stockout per replenishment cycle) = $\Phi(k)$**, so $k=\Phi^{-1}(\text{CSL})$.
+- **CSL = P(no stockout per replenishment cycle) = $\Phi(k)$**, so $\mathit{k}=\Phi^{-1}(\text{CSL})$.
 - Standard deviation of lead-time demand (continuous review). Treat demand and lead time as independent:
-  $$\sigma_{DL}=\sqrt{\bar L\,\sigma_d^2+\bar d^{\,2}\sigma_L^2},\qquad SS = k\,\sigma_{DL},\qquad ROP = \bar d\,\bar L + SS$$
-- **Periodic review (R, S):** replace $L$ with $R+L$ (the protection interval).
-- **Gold-standard requirement:** $\sigma_d$ must be the standard deviation of **forecast error** at the relevant lag and bucket (for example, RMSE of lag-L forecasts), **not** the standard deviation of raw demand (Silver, Pyke & Thomas). The scaling $\sigma_L=\sigma_1\sqrt{L}$ is valid only if errors are uncorrelated. Otherwise, measure errors directly at horizon L.
-- Do not use normal-$k$ safety stock for intermittent or count items (use GS-M-08 distributions), or when $\sigma_{DL}/\mu_{DL} > 0.5$ (risk of negative demand mass) [RoT].
+  $$\sigma_{DL}=\sqrt{\bar L\,\sigma_d^2+\bar d^{\,2}\sigma_L^2},\qquad \mathit{SS} = k\,\sigma_{DL},\qquad \mathit{ROP} = \bar d\,\bar L + \mathit{SS}$$
+- **Periodic review (R, S):** replace $\mathit{L}$ with $\mathit{R}+L$ (the protection interval).
+- **Gold-standard requirement:** $\sigma_d$ must be the standard deviation of **forecast error** at the relevant lag and bucket (for example, RMSE of lag-L forecasts), **not** the standard deviation of raw demand (Silver, Pyke & Thomas). The scaling $\sigma_{e,L}=\sigma_{e,1}\sqrt{L}$ is valid only if errors are uncorrelated. Otherwise, measure errors directly at horizon L.
+- Do not use normal-$\mathit{k}$ safety stock for intermittent or count items (use GS-M-08 distributions), or when $\sigma_{DL}/\mu_{DL} > 0.5$ (risk of negative demand mass) [RoT].
 
 ### GS-M-13 Safety stock: Fill-rate (β) target [STD]
-- Unit normal loss function: $G(k)=\phi(k)-k\,[1-\Phi(k)]$
-- **(s, Q) policy:** $\beta = 1-\dfrac{\sigma_{DL}\,G(k)}{Q}$. Solve $G(k) = (1-\beta)Q/\sigma_{DL}$ for $k$, then $\mathit{SS}=k\sigma_{DL}$.
+- Unit normal loss function: $\mathit{G}(k)=\phi(k)-k\,[1-\Phi(k)]$
+- **(s, Q) policy:** $\beta = 1-\dfrac{\sigma_{DL}\,G(k)}{Q}$. Solve $\mathit{G}(k) = (1-\beta)Q/\sigma_{DL}$ for $\mathit{k}$, then $\mathit{SS}=k\sigma_{DL}$.
 - **(R, S) policy:** $\beta = 1-\dfrac{\sigma_{R+L}\,G(k)}{\bar d R}$
-- When $k<0$ results (large Q), SS may be negative. Floor it at the policy minimum and report it. Never equate CSL and fill rate; the same $k$ yields different values of each.
+- When $\mathit{k}<0$ results (large Q), SS may be negative. Floor it at the policy minimum and report it. Never equate CSL and fill rate; the same $\mathit{k}$ yields different values of each.
 
 ### GS-M-14 Newsvendor / single-period [STD]
-- Critical ratio $\mathit{CR} = \dfrac{C_u}{C_u + C_o}$, where $C_u$ is underage cost (lost margin plus goodwill) and $C_o$ is overage cost (cost − salvage + holding).
-- Optimal quantity $Q^* = F^{-1}(CR)$ from the forecast distribution.
+- Critical ratio $\mathit{CR} = \dfrac{C_u}{C_u + C_o}$, where $\mathit{C}_u$ is underage cost (lost margin plus goodwill) and $\mathit{C}_o$ is overage cost (cost − salvage + holding).
+- Optimal quantity $\mathit{Q}^* = F^{-1}(\mathit{CR})$ from the forecast distribution.
 - Use for seasonal, perishable, or one-shot buys, and for setting quantile targets (GS-M-10).
 
 ### GS-M-15 Forecast combination [STD/EVID]
@@ -170,12 +170,12 @@ Unless stated otherwise, sums run over the evaluation set of item-location-perio
 
 | ID | KPI | Exact formula | Use when | Pitfalls / rules |
 |---|---|---|---|---|
-| **GS-K-01** | **WAPE** (= WMAPE, IBF) | $\displaystyle \text{WAPE}=\frac{\sum_t\lvert A_t-F_t\rvert}{\sum_t \lvert A_t\rvert}\times100$ | **Primary portfolio accuracy metric.** Volume-weighted; robust to zeros at the item level | Undefined if $\sum A=0$. Dominated by high-volume items, so pair it with a per-item MASE. A **value-weighted** variant uses $\lvert A-F\rvert\times$price. Accuracy is reported as $\max(0,100-\text{WAPE})$ only if explicitly labeled. |
-| **GS-K-02** | **MAPE** | $\displaystyle \frac{100}{n}\sum_t \left\lvert\frac{A_t-F_t}{A_t}\right\rvert$ | Legacy/communication only, on strictly positive, non-intermittent series | Infinite when $A_t=0$, explosive near 0, and penalizes over-forecasts more heavily (FPP3 §5.8). **Never** use for intermittent items. Excluded zeros must be counted and disclosed. |
+| **GS-K-01** | **WAPE** (= WMAPE, IBF) | $\displaystyle \text{WAPE}=\frac{\sum_t\lvert A_t-F_t\rvert}{\sum_t \lvert A_t\rvert}\times100$ | **Primary portfolio accuracy metric.** Volume-weighted; robust to zeros at the item level | Undefined if $\sum A=0$. Dominated by high-volume items, so pair it with a per-item MASE. A **value-weighted** variant uses $\lvert A-F\rvert\times\text{price}$. Accuracy is reported as $\max(0,100-\text{WAPE})$ only if explicitly labeled. |
+| **GS-K-02** | **MAPE** | $\displaystyle \frac{100}{n}\sum_t \left\lvert\frac{A_t-F_t}{A_t}\right\rvert$ | Legacy/communication only, on strictly positive, non-intermittent series | Infinite when $\mathit{A}_t=0$, explosive near 0, and penalizes over-forecasts more heavily (FPP3 §5.8). **Never** use for intermittent items. Excluded zeros must be counted and disclosed. |
 | **GS-K-03** | **sMAPE** (M3 form) | $\displaystyle \frac{100}{n}\sum_t \frac{2\lvert A_t-F_t\rvert}{\lvert A_t\rvert+\lvert F_t\rvert}$ | Only for comparability with external studies | Hyndman & Koehler (2006) recommend **against** it: it is unstable near zero, asymmetric, and bounded at 200%. Define 0/0 = 0 and disclose it. Reported, not decided on. |
-| **GS-K-04** | **MASE** (and RMSSE) | $\displaystyle q_j=\frac{e_j}{\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert}$, $\ \text{MASE}=\text{mean}(\lvert q_j\rvert)$, with $m=1$ for non-seasonal series | **Primary per-series and cross-series scale-free metric**, valid for intermittent series | The scaling uses the **training** in-sample naïve MAE. MASE < 1 beats the in-sample one-step naïve. The scale is undefined if training data are constant, so fall back to WAPE. RMSSE is used for MSE-optimal (mean) forecasts. |
-| **GS-K-05** | **Forecast Bias** | $\displaystyle \text{Bias\%}=\frac{\sum_t (F_t-A_t)}{\sum_t A_t}\times 100$ (positive = **over**-forecast) | Every report, at every level | Opposite sign to $e_t$, so always state the direction in words. Bias offsets at aggregate levels, so compute it at decision level and roll up the absolute values. Mean error (ME) = $\text{mean}(e_t)$. |
-| **GS-K-06** | **Tracking Signal** (APICS) | $\displaystyle TS_t=\frac{\sum_{i=1}^{t} (A_i-F_i)}{\text{MAD}_t}$, where $\text{MAD}_t=\frac{1}{t}\sum\lvert A_i-F_i\rvert$ (or smoothed MAD) | Persistent-bias detection per item | Positive TS = under-forecasting. Out of control when $\lvert TS\rvert>4$ (common APICS control limit, [RoT]; range 3.75–6 used). Use a rolling window (for example, the last 6–13 periods) so old errors age out [RoT]. |
+| **GS-K-04** | **MASE** (and RMSSE) | $\displaystyle \mathit{q}_j=\frac{e_j}{\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert}$, $\ \text{MASE}=\text{mean}(\lvert q_j\rvert)$, with $\mathit{m}=1$ for non-seasonal series | **Primary per-series and cross-series scale-free metric**, valid for intermittent series | The scaling uses the **training** in-sample naïve MAE. MASE < 1 beats the in-sample one-step naïve. The scale is undefined if training data are constant, so fall back to WAPE. RMSSE is used for MSE-optimal (mean) forecasts. |
+| **GS-K-05** | **Forecast Bias** | $\displaystyle \text{Bias\%}=\frac{\sum_t (F_t-A_t)}{\sum_t A_t}\times 100$ (positive = **over**-forecast) | Every report, at every level | Opposite sign to $\mathit{e}_t$, so always state the direction in words. Bias offsets at aggregate levels, so compute it at decision level and roll up the absolute values. Mean error (ME) = $\text{mean}(e_t)$. |
+| **GS-K-06** | **Tracking Signal** (APICS) | $\displaystyle \mathit{TS}_t=\frac{\sum_{i=1}^{t} (A_i-F_i)}{\text{MAD}_t}$, where $\text{MAD}_t=\frac{1}{t}\sum\lvert A_i-F_i\rvert$ (or smoothed MAD) | Persistent-bias detection per item | Positive TS = under-forecasting. Out of control when $\lvert \mathit{TS}\rvert>4$ (common APICS control limit, [RoT]; range 3.75–6 used). Use a rolling window (for example, the last 6–13 periods) so old errors age out [RoT]. |
 | **GS-K-07** | **Forecast Value Added (FVA)** | $\text{FVA}_{s} = \text{Err}(\text{prior step}) - \text{Err}(\text{step } s)$, using the same metric (WAPE by default), the same items, and the same lag. Stair-step: Naïve → Statistical → Analyst override → Consensus → Final | Judging every process step and touchpoint | Positive = value added. NF1/NF2 is the ultimate comparator (Gilliland). Requires storing **every version** of the forecast. Report FVA with a significance check: a paired test or bootstrap over items, or at least ≥ 6 cycles [RoT]. |
 | **GS-K-08** | **Cycle Service Level (CSL)** | $\displaystyle \text{CSL}=\frac{\#\text{ replenishment cycles with no stockout}}{\#\text{ cycles}}$; planned CSL $=\Phi(k)$ | Setting/validating safety stock (GS-M-12) | Ignores the size of the shortage and is not a customer metric. Do not report it as "service level" without the "cycle" qualifier. |
 | **GS-K-09** | **Fill Rate** | **Unit fill rate:** $\frac{\text{units shipped from stock on first pass}}{\text{units demanded}}$. Line and order fill rate are similar at line or order level. | Customer service from stock (β) | Always state the basis (units, lines, or orders) (ASCM). The denominator is **requested** (unconstrained) quantity. Backfilled shipments do not count as filled. |
@@ -212,7 +212,7 @@ Unless stated otherwise, sums run over the evaluation set of item-location-perio
 - If more than 20% of the history is missing, or there is a gap longer than one seasonal cycle, use only the history after the gap or flag the series [RoT].
 
 ### GS-D-04 Outliers [STD]
-- **Detection:** robust STL decomposition. Flag remainder values outside $[Q_1-3\,\text{IQR},\ Q_3+3\,\text{IQR}]$, which is the FPP3 §13.9 preferred rule (1.5×IQR is the looser alternative).
+- **Detection:** robust STL decomposition. Flag remainder values outside $\left[Q_1-3\,\text{IQR},\ Q_3+3\,\text{IQR}\right]$, which is the FPP3 §13.9 preferred rule (1.5×IQR is the looser alternative).
 - **Treatment:**
   - First **explain** the outlier: promo, event, data error, or bulk/one-off order.
   - Known recurring causes are modeled as regressors, not removed.
@@ -221,32 +221,32 @@ Unless stated otherwise, sums run over the evaluation set of item-location-perio
 - For intermittent series, do not apply STL-based detection. Use size-only checks on non-zero demands, for example the P99 or a 3×IQR rule on non-zero sizes [RoT].
 
 ### GS-D-05 Promotional lift decomposition
-- **Baseline** $B_t$: demand that would occur without the promotion. Estimate it by regression with promo and price terms, or by forecasting through the promo window with promo periods masked.
-- **Gross lift:** $\text{Lift}_t = A_t - B_t$. **Lift %:** $(A_t-B_t)/B_t$.
+- **Baseline** $\mathit{B}_t$: demand that would occur without the promotion. Estimate it by regression with promo and price terms, or by forecasting through the promo window with promo periods masked.
+- **Gross lift:** $\text{Lift}_t = A_t - B_t$. **Lift %:** $\left(A_t-B_t\right)/B_t$.
 - **Net incremental volume:**
   $$\text{NetInc} = \sum_{t\in\text{promo}}(A_t-B_t) \;-\; \underbrace{\sum_{t\in\text{post}}(B_t-A_t)}_{\text{post-promo dip / pantry loading}} \;-\; \underbrace{\sum_{t\in\text{pre}}(B_t-A_t)}_{\text{pre-promo dip}} \;-\; \text{Cannibalization} + \text{Halo}$$
 - Forecasts for future promos = baseline × modeled lift, using the planned mechanics (depth, display, feature).
 
 ### GS-D-06 Cannibalization and halo
-- **Cannibalization:** the loss in baseline of substitutable items $j$ (same need-state) during the promotion of item $i$: $\sum_j (B_{j,t}-A_{j,t})^+$.
+- **Cannibalization:** the loss in baseline of substitutable items $\mathit{j}$ (same need-state) during the promotion of item $\mathit{i}$: $\sum_j (B_{j,t}-A_{j,t})^+$.
 - **Halo:** the gain in complementary items: $\sum_k (A_{k,t}-B_{k,t})^+$.
 - Measure them with cross-price or cross-promo regression terms, or by control-group comparison (test vs. control stores).
 - Report the **category-level net** effect. A promo with positive SKU lift but zero or negative category net is flagged.
 
 ### GS-D-07 Hierarchy reconciliation [STD]
-All coherent methods take the form $\tilde y_h = S G \hat y_h$, where $S$ is the $n\times m$ summing matrix (FPP3 §11.3).
+All coherent methods take the form $\tilde y_h = S G \hat y_h$, where $\mathit{S}$ is the $\mathit{n}\times m$ summing matrix (FPP3 §11.3).
 
 | Method | G / rule | Use when | Caveat |
 |---|---|---|---|
 | **Bottom-up** | Forecast at the bottom level and sum | Bottom series have strong signal | Noisy at sparse bottoms |
-| **Top-down** | Disaggregate the total by proportions $p_j$: average historical proportions $p_j=\frac1T\sum_t y_{j,t}/y_t$, proportions of historical averages, or **forecast proportions** (default) | Very sparse bottoms, low counts | **Always biased** (fails $S G S=S$) |
+| **Top-down** | Disaggregate the total by proportions $\mathit{p}_j$: average historical proportions $\mathit{p}_j=\frac1T\sum_t y_{j,t}/y_t$, proportions of historical averages, or **forecast proportions** (default) | Very sparse bottoms, low counts | **Always biased** (fails $\mathit{S} G S=S$) |
 | **Middle-out** | Forecast a middle level, sum it upward, and apply top-down below it | Strictly hierarchical structures with a reliable middle level | Same top-down bias below the middle |
 | **MinT** (GS-D-08) | Optimal combination using all levels | **Default** for production | Needs a residual covariance estimate |
 
 ### GS-D-08 MinT (Wickramasuriya, Athanasopoulos & Hyndman 2019) [STD]
 $$\tilde{\boldsymbol y}_h=\boldsymbol S(\boldsymbol S'\boldsymbol W_h^{-1}\boldsymbol S)^{-1}\boldsymbol S'\boldsymbol W_h^{-1}\hat{\boldsymbol y}_h$$
-This minimizes $\operatorname{tr}(\boldsymbol V_h)$ subject to $S G S=S$. Choose $W_h$ in this priority order:
-1. **`mint_shrink`** (shrinkage covariance; default when $m$ is large relative to $T$)
+This minimizes $\operatorname{tr}(\boldsymbol V_h)$ subject to $\mathit{S} G S=S$. Choose $\mathit{W}_h$ in this priority order:
+1. **`mint_shrink`** (shrinkage covariance; default when $\mathit{m}$ is large relative to $\mathit{T}$)
 2. `wls_var` (diagonal residual variances)
 3. `wls_struct` ($\Lambda=\text{diag}(S\mathbf 1)$; use when residuals are not available, for example for judgmental bases)
 4. `ols`
@@ -305,7 +305,7 @@ Default triggers are [RoT, configurable]. Each exception lists cause, impact (un
 
 | Trigger | Default threshold |
 |---|---|
-| Tracking signal | $\lvert TS\rvert>4$ |
+| Tracking signal | $\lvert \mathit{TS}\rvert>4$ |
 | Bias% at decision level | outside ±10% over the last 3 cycles |
 | MASE | > 1.0 (worse than in-sample naïve) on the rolling window |
 | FVA of the final forecast vs. naïve | < 0 |
@@ -332,16 +332,16 @@ Keep separate and labeled:
 Accuracy is measured on unconstrained demand. Gaps between the plans are explicit S&OP decisions, not forecast adjustments (ASCM S&OP/IBP practice).
 
 ### GS-G-06 Volume-to-value financial reconciliation
-- **Value forecast:** $V = \sum_i Q_i \times P_i^{\text{net}}$, where net price = list − trade spend / discounts, in the same currency and the same fiscal calendar (GS-D-09).
-- **Reconcile** the consensus demand plan (volume × price) with the financial plan or budget every cycle at the agreed level (for example, brand × region × month). The **gap** = $V_{\text{demand}} - V_{\text{financial}}$ is reported, decomposed per GS-G-07, and resolved in the S&OP management business review. **The volume plan is never silently "plugged" to hit the financial number.**
+- **Value forecast:** $\mathit{V} = \sum_i Q_i \times P_i^{\text{net}}$, where net price = list − trade spend / discounts, in the same currency and the same fiscal calendar (GS-D-09).
+- **Reconcile** the consensus demand plan (volume × price) with the financial plan or budget every cycle at the agreed level (for example, brand × region × month). The **gap** = $\mathit{V}_{\text{demand}} - V_{\text{financial}}$ is reported, decomposed per GS-G-07, and resolved in the S&OP management business review. **The volume plan is never silently "plugged" to hit the financial number.**
 - **Tolerance [RoT]:** an absolute gap greater than 2% of value at the reconciliation level triggers an escalation.
 
 ### GS-G-07 Price-Volume-Mix (PVM) decomposition [STD accounting practice]
-For plan (0) vs. forecast or actual (1), with $Q$ = total volume and $s_i$ = mix share:
+For plan (0) vs. forecast or actual (1), with $\mathit{Q}$ = total volume and $\mathit{s}_i$ = mix share:
 - **Volume effect** $= (Q_1 - Q_0)\times \bar P_0$, where $\bar P_0 = \sum_i s_{i,0}P_{i,0}$
 - **Mix effect** $= Q_1 \times \sum_i (s_{i,1}-s_{i,0})P_{i,0}$
 - **Price effect** $= \sum_i Q_{i,1}(P_{i,1}-P_{i,0})$
-- Check: Volume + Mix + Price = $V_1 - V_0$ exactly. Verify the residual is 0 in code.
+- Check: Volume + Mix + Price = $\mathit{V}_1 - V_0$ exactly. Verify the residual is 0 in code.
 
 ### GS-G-08 Allocation under shortage
 When constrained supply is below demand, allocate by a declared rule:
@@ -377,7 +377,7 @@ Cut-offs are [RoT]. A common default is A/B/C = 80/15/5% of value.
 
 ---
 
-## 5. Proposed 25-Skill Architecture
+## 5. 25-Skill Architecture
 
 ### Domain A: Demand Forecasting (7)
 | # | Skill (kebab-case) | Purpose | Enforces |
@@ -427,7 +427,7 @@ Cut-offs are [RoT]. A common default is A/B/C = 80/15/5% of value.
 ## References
 
 **Professional bodies and frameworks**
-- ASCM (APICS), *ASCM Supply Chain Dictionary*, 18th ed. (definitions: fill rate, customer service ratio, OTIF, S&OP). https://learn.ascm.org/sfc/servlet.shepherd/document/download/069R3000006PlDHIA0
+- ASCM (APICS), *ASCM Supply Chain Dictionary*, 18th ed. (definitions: fill rate, customer service ratio, OTIF, S&OP).
 - ASCM, SCOR Digital Standard, RL.1.1 Perfect Order Fulfillment. https://scor.ascm.org/performance/reliability/RL.1.1
 - CSCMP, *Supply Chain Management Definitions and Glossary of Terms*. https://cscmp.org/CSCMP/Educate/SCM_Definitions_and_Glossary_of_Terms.aspx
 - Institute of Business Forecasting (IBF), Glossary: WMAPE. https://ibf.org/knowledge/glossary/weighted-mean-absolute-percentage-error-wmape-299 ; *Forecast Error Metrics*. https://ibf.org/knowledge/posts/forecast-error-metrics-to-assess-performance-39

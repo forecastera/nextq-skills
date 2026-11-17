@@ -26,20 +26,20 @@ metadata:
 **Objective:** Produce a deterministic, reproducible accuracy and bias scorecard with mandatory metadata (lag, level, window, weighting). It includes a correct metric choice per series type, tracking-signal control, distributional accuracy, and a ranked exception list. It is the **measurement engine** reused by FVA (`nextq-forecast-value-added-analysis`) and exception management.
 
 ## 2. Gold Standard Rules Enforced
-Notation: $A_t$ = unconstrained actual, $F_t = F_{t\mid t-\ell}$ = forecast frozen at lag ℓ, $e_t=A_t-F_t$ (**GS-M-01**).
+Notation: $\mathit{A}_t$ = unconstrained actual, $\mathit{F}_t = F_{t\mid t-\ell}$ = forecast frozen at lag ℓ, $\mathit{e}_t=A_t-F_t$ (**GS-M-01**).
 
 | Rule | Exact definition (inlined) | Use / guardrail |
 |---|---|---|
 | **GS-M-01** | Every number states **lag ℓ, level, time window, weighting**. A forecast without a stored creation date (unknown lag) is **not scored**. | Default decision lag = cumulative lead time or frozen zone [RoT]. |
 | **GS-K-01** WAPE (= WMAPE, IBF) | $\text{WAPE}=\dfrac{\sum\lvert A_t-F_t\rvert}{\sum\lvert A_t\rvert}\times100$. Value-weighted variant: weight by price, $\frac{\sum p\lvert A-F\rvert}{\sum p\lvert A\rvert}$. | **Primary portfolio** metric. Undefined if $\sum A=0$. "Accuracy" $=\max(0,100-\text{WAPE})$ only when labeled. |
-| **GS-K-02** MAPE | $\frac{100}{n}\sum\left\lvert\frac{A_t-F_t}{A_t}\right\rvert$ over $A_t>0$ only. | Legacy/communication only. **Prohibited** for intermittent series (ADI ≥ 1.32). Count and disclose excluded zeros. |
+| **GS-K-02** MAPE | $\frac{100}{n}\sum\left\lvert\frac{A_t-F_t}{A_t}\right\rvert$ over $\mathit{A}_t>0$ only. | Legacy/communication only. **Prohibited** for intermittent series (ADI ≥ 1.32). Count and disclose excluded zeros. |
 | **GS-K-03** sMAPE | $\frac{100}{n}\sum\frac{2\lvert A_t-F_t\rvert}{\lvert A_t\rvert+\lvert F_t\rvert}$, with 0/0 := 0. | Reported only for external comparability; never used for decisions (Hyndman & Koehler 2006). |
-| **GS-K-04** MASE / RMSSE | $q_j=\dfrac{e_j}{\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert}$; $\text{MASE}=\text{mean}\lvert q_j\rvert$; $\text{RMSSE}=\sqrt{\text{mean}(e_j^2)/\frac{1}{T-m}\sum(y_t-y_{t-m})^2}$. $m=1$ for non-seasonal and intermittent series. Training window = history before the forecast **origin**. | **Primary per-series** metric. < 1 beats the in-sample one-step (seasonal) naïve. Scale ≈ 0 → `SCALE_ZERO` and fall back to WAPE. RMSSE is used for intermittent series (MAE-type metrics reward zero forecasts). |
+| **GS-K-04** MASE / RMSSE | $\mathit{q}_j=\dfrac{e_j}{\frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t-y_{t-m}\rvert}$; $\text{MASE}=\text{mean}\lvert q_j\rvert$; $\text{RMSSE}=\sqrt{\text{mean}(e_j^2)/\frac{1}{T-m}\sum(y_t-y_{t-m})^2}$. $\mathit{m}=1$ for non-seasonal and intermittent series. Training window = history before the forecast **origin**. | **Primary per-series** metric. < 1 beats the in-sample one-step (seasonal) naïve. Scale ≈ 0 → `SCALE_ZERO` and fall back to WAPE. RMSSE is used for intermittent series (MAE-type metrics reward zero forecasts). |
 | **GS-K-05** Bias | $\text{Bias\%}=\dfrac{\sum(F_t-A_t)}{\sum A_t}\times100$ (**positive = over-forecast**); $\text{ME}=\text{mean}(e_t)$. | Compute at decision level and roll up. Also report **absolute-bias-weighted** roll-up $\frac{\sum_i\lvert\sum_t(F-A)\rvert_i}{\sum A}$ because offsets hide at aggregate. State the direction in words. |
-| **GS-K-06** Tracking signal (APICS) | $\mathit{TS}_t=\dfrac{\sum_{i=t-w+1}^{t}(A_i-F_i)}{\text{MAD}_t}$, where $\text{MAD}_t=\frac1w\sum\lvert A_i-F_i\rvert$ over the same rolling window $w$ (default 13 weeks / 6 months [RoT]). Smoothed alternative: $\text{MAD}_t=\alpha\lvert e_t\rvert+(1-\alpha)\text{MAD}_{t-1}$, α = 0.1. | **Out of control** at $\lvert TS\rvert>4$ [RoT; 3.75–6 used]. **Positive TS = under-forecasting** (opposite sign to Bias%). |
+| **GS-K-06** Tracking signal (APICS) | $\mathit{TS}_t=\dfrac{\sum_{i=t-w+1}^{t}(A_i-F_i)}{\text{MAD}_t}$, where $\text{MAD}_t=\frac1w\sum\lvert A_i-F_i\rvert$ over the same rolling window $\mathit{w}$ (default 13 weeks / 6 months [RoT]). Smoothed alternative: $\text{MAD}_t=\alpha\lvert e_t\rvert+(1-\alpha)\text{MAD}_{t-1}$, α = 0.1. | **Out of control** at $\lvert \mathit{TS}\rvert>4$ [RoT; 3.75–6 used]. **Positive TS = under-forecasting** (opposite sign to Bias%). |
 | **GS-K-07** FVA (hook) | $\text{FVA}_s=\text{Err}(\text{prior step})-\text{Err}(s)$, same metric, items, lag, window. | Computed here on request. The stair-step and significance testing live in `nextq-forecast-value-added-analysis`. |
 | **GS-K-13** Reporting rules | Decision level and aggregates reported **separately**. Volume-weighted WAPE + **median** MASE across items. Disclose N items, N periods, % reconstructed actuals, % excluded zeros. | Aggregate accuracy always looks better (errors cancel), so never present it as SKU accuracy. |
-| **GS-K-14** Probabilistic | Pinball $Q_{p,t}=2(1-p)(f_{p,t}-y_t)$ if $y_t<f_{p,t}$, else $2p(y_t-f_{p,t})$. Winkler $W_\alpha=(u-l)+\frac2\alpha(l-y)\mathbb 1[y<l]+\frac2\alpha(y-u)\mathbb 1[y>u]$. Coverage $=\frac{\#\{A_t\in PI\}}{n}$. | Flag coverage off nominal by > 5 pp [RoT]. Use CRPS / skill scores vs. naïve for cross-series comparison. |
+| **GS-K-14** Probabilistic | Pinball $\mathit{Q}_{p,t}=2(1-p)(f_{p,t}-y_t)$ if $\mathit{y}_t<f_{p,t}$, else $2p(y_t-f_{p,t})$. Winkler $\mathit{W}_\alpha=(u-l)+\frac2\alpha(l-y)\mathbb 1[y<l]+\frac2\alpha(y-u)\mathbb 1[y>u]$. Coverage $=\frac{\#\{A_t\in \mathit{PI}\}}{n}$. | Flag coverage off nominal by > 5 pp [RoT]. Use CRPS / skill scores vs. naïve for cross-series comparison. |
 | **GS-M-16** | Score **per lag**. Never average different horizons without showing each lag. | Rolling-origin backtests and production snapshots are both allowed; label which. |
 | **GS-M-11 / GS-D-02** | Score against **unconstrained** actuals (cleansed and reconstructed). Report sales-basis (constrained) accuracy separately. Exclude structural-zero periods. | If > 30% of actuals are reconstructed → `LOW_CONFIDENCE`. |
 | **GS-G-03** Exception triggers [RoT] | \|TS\| > 4; \|Bias%\| > 10% over the last 3 cycles (15% for intermittent); MASE > 1.0 on the rolling window; FVA of final vs. naïve < 0; forecast change vs. last cycle > ±25% inside the frozen zone; coverage off > 5 pp; > 30% reconstructed actuals. | Rank by **value at risk** = $\lvert\sum(F-A)\rvert\times$ unit margin (or cost) × ABC weight (A = 3, B = 2, C = 1 [RoT]). Show the top N. |
@@ -48,7 +48,7 @@ Notation: $A_t$ = unconstrained actual, $F_t = F_{t\mid t-\ell}$ = forecast froz
 ### Metric-misuse guard (runs automatically)
 | Condition | Action |
 |---|---|
-| MAPE requested on a series with any $A_t=0$ or ADI ≥ 1.32 | Replace with WAPE + MASE/RMSSE; note `MAPE_SUPPRESSED` |
+| MAPE requested on a series with any $\mathit{A}_t=0$ or ADI ≥ 1.32 | Replace with WAPE + MASE/RMSSE; note `MAPE_SUPPRESSED` |
 | Comparison of forecasts frozen at different lags | Block the comparison; `LAG_MISMATCH` |
 | Aggregated-then-scored WAPE presented as item accuracy | Relabel the level; compute item-level WAPE |
 | Accuracy averaged across items as an unweighted mean of WAPE | Show the volume-weighted WAPE instead; unweighted only as a secondary |
@@ -76,22 +76,22 @@ Notation: $A_t$ = unconstrained actual, $F_t = F_{t\mid t-\ell}$ = forecast froz
 
 **Granularity:** one grain per run (default SKU-Location-Week). Lags are in the same buckets.
 
-**Minimum:** ≥ 3 target periods per series per lag for series-level metrics. ≥ 1 seasonal cycle of history before the first origin for the MASE scale; otherwise use $m=1$ and flag.
+**Minimum:** ≥ 3 target periods per series per lag for series-level metrics. ≥ 1 seasonal cycle of history before the first origin for the MASE scale; otherwise use $\mathit{m}=1$ and flag.
 
 ## 4. Execution Workflow
 1. **Validate snapshots.** Compute `lag` from the fiscal calendar. Drop rows with lag < 1 and flag forecasts with no creation date. Deduplicate: keep the **last** snapshot per (version, key, target, lag) before the freeze cut-off, and log the drop count.
 2. **Join actuals.** Use the unconstrained basis. Exclude STRUCTURAL periods. Attach `pct_reconstructed`.
 3. **Align scope.** For any multi-version comparison, intersect items × periods × lags (`ITEMSET_ALIGNED`).
-4. **Compute the MASE/RMSSE scale per series and origin** from history ≤ created_period. Use $m$ = the seasonal period if the series is classified SEASONAL with ≥ 2 cycles, else $m=1$. Intermittent series use $m=1$.
+4. **Compute the MASE/RMSSE scale per series and origin** from history ≤ created_period. Use $\mathit{m}$ = the seasonal period if the series is classified SEASONAL with ≥ 2 cycles, else $\mathit{m}=1$. Intermittent series use $\mathit{m}=1$.
 5. **Compute metrics** per (version, series, lag): Σ|e|, ΣA, Σ(F−A), MASE, RMSSE, MAPE (eligible only), sMAPE, pinball per quantile, and coverage. Roll up per level and segment with the GS-K-13 weighting rules.
-6. **Tracking signal** per series on the decision lag. Use a rolling window $w$ (default 13 for weekly, 6 for monthly) and also the smoothed variant. Flag $\lvert TS\rvert>4$ and record its sign.
+6. **Tracking signal** per series on the decision lag. Use a rolling window $\mathit{w}$ (default 13 for weekly, 6 for monthly) and also the smoothed variant. Flag $\lvert \mathit{TS}\rvert>4$ and record its sign.
 7. **Run the metric-misuse guard** (table above). Apply substitutions and record them.
 8. **Diagnostics:**
    - Error decomposition $\text{MSE}=\text{Bias}^2+\text{Var}(e)$ per series. A bias share > 50% means systematic error.
    - Concentration (Pareto): % of total absolute error from the top 20% of series.
    - Accuracy by lag curve.
    - Error by segment (ABC × XYZ, class, region, customer).
-9. **Model / version comparison** (optional): a paired Diebold-Mariano-style test on the per-period loss differential $d_t=\lvert e^{(1)}_t\rvert-\lvert e^{(2)}_t\rvert$ pooled per series, or a bootstrap over items (seeded, 1,000 resamples) for the WAPE difference. Report the 95% CI.
+9. **Model / version comparison** (optional): a paired Diebold-Mariano-style test on the per-period loss differential $\mathit{d}_t=\lvert e^{(1)}_t\rvert-\lvert e^{(2)}_t\rvert$ pooled per series, or a bootstrap over items (seeded, 1,000 resamples) for the WAPE difference. Report the 95% CI.
 10. **Exceptions:** apply the GS-G-03 triggers, compute value at risk, rank, and keep the top N (default 50).
 11. **Output** (Section 6), with the reproducibility block.
 
@@ -140,7 +140,7 @@ def bootstrap_wape_diff(df, v1, v2, n=1000, seed=42):
         diffs.append(100 * ((s.A - s[v1]).abs().sum() - (s.A - s[v2]).abs().sum()) / s.A.sum())
     return np.percentile(diffs, [2.5, 50, 97.5])
 ```
-**Test vectors** (executed):
+**Test vectors** (verified):
 - `A=[10,0,10,20]`, `F=[12,1,8,20]`, `y_train=[8,10,12,10,11]`: WAPE = 12.5%, Bias% = +2.5% (over), MAPE = 13.33% with 1 zero excluded, MASE ≈ 0.714 (scale 1.75), and RMSSE ≈ 0.832.
 - A constant under-forecast of 2 units for 13 periods (|e| = 2) gives TS = +13.
 - `pinball([10],[8],0.9)` = 3.6.
@@ -186,7 +186,7 @@ FROM s GROUP BY forecast_version;
 |---|---|---|---|---|---|
 
 ## Accuracy by Segment (decision lag)
-| Segment (ABC×XYZ / class / region) | N | Volume share % | WAPE % | Median MASE | Bias % | % series |TS|>4 |
+| Segment (ABC×XYZ / class / region) | N | Volume share % | WAPE % | Median MASE | Bias % | % series \|TS\|>4 |
 |---|---|---|---|---|---|---|
 
 ## Version Comparison (optional)
@@ -196,8 +196,8 @@ FROM s GROUP BY forecast_version;
 ## Exceptions (top N by value at risk)
 | ID | Trigger (rule, threshold) | item | loc | lag | metric | value | units at risk | value at risk | likely cause | action | owner |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| | |TS|>4 (GS-K-06) | | | | TS | | | | level shift / bias | re-baseline, review overrides | |
-| | |Bias|>10% ×3 cycles (GS-K-05) | | | | | | | | | | |
+| | \|TS\|>4 (GS-K-06) | | | | TS | | | | level shift / bias | re-baseline, review overrides | |
+| | \|Bias\|>10% ×3 cycles (GS-K-05) | | | | | | | | | | |
 | | MASE>1 (GS-G-03) | | | | | | | | | route review | |
 | | Coverage off >5pp (GS-K-14) | | | | | | | | | recalibrate PIs | |
 | | LOW_CONFIDENCE actuals (>30% reconstructed) | | | | | | | | | reconstruct / caveat | |

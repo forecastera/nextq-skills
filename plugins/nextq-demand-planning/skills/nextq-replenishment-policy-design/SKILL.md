@@ -32,9 +32,9 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-12** CSL policies [STD] | $k=\Phi^{-1}(\text{CSL})$, $\sigma_{DL}=\sqrt{\bar L\sigma_d^2+\bar d^2\sigma_L^2}$, $\mathit{SS}=k\sigma_{DL}$, $\mathit{ROP}=\bar d\bar L+SS$. Periodic review (R, S): the protection interval is $R+L$, so $S=\bar d(R+L)+SS_{R+L}$. $\sigma_d$ = forecast-error σ at lag and bucket, not demand σ. No normal-k for intermittent or count items, or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. **SS values come from `nextq-safety-stock-optimization`; they are not recomputed here.** |
-| **GS-M-13** Fill rate [STD] | $G(k)=\phi(k)-k[1-\Phi(k)]$. (s, Q): $\beta=1-\sigma_{DL}G(k)/Q$. (R, S): $\beta=1-\sigma_{R+L}G(k)/(\bar dR)$. A negative $k$ is floored and reported. **CSL ≠ fill rate:** both are reported for every policy. |
-| **GS-M-14** Newsvendor [STD] | Critical ratio $\mathit{CR}=C_u/(C_u+C_o)$, with $C_u$ = lost margin + goodwill and $C_o$ = cost − salvage + holding. $Q^*=F^{-1}(CR)$ from the forecast **distribution** (Poisson / NB / empirical for counts). Used for seasonal, perishable and one-shot buys. Report expected leftover $E[(Q-D)^+]$, expected shortage $E[(D-Q)^+]$ and fill rate $1-E[(D-Q)^+]/E[D]$. |
+| **GS-M-12** CSL policies [STD] | $\mathit{k}=\Phi^{-1}(\text{CSL})$, $\sigma_{DL}=\sqrt{\bar L\sigma_d^2+\bar d^2\sigma_L^2}$, $\mathit{SS}=k\sigma_{DL}$, $\mathit{ROP}=\bar d\bar L+\mathit{SS}$. Periodic review (R, S): the protection interval is $\mathit{R}+L$, so $\mathit{S}=\bar d(R+L)+\mathit{SS}_{R+L}$. $\sigma_d$ = forecast-error σ at lag and bucket, not demand σ. No normal-k for intermittent or count items, or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. **SS values come from `nextq-safety-stock-optimization`; they are not recomputed here.** |
+| **GS-M-13** Fill rate [STD] | $\mathit{G}(k)=\phi(k)-k[1-\Phi(k)]$. (s, Q): $\beta=1-\sigma_{DL}G(k)/Q$. (R, S): $\beta=1-\sigma_{R+L}G(k)/(\bar dR)$. A negative $\mathit{k}$ is floored and reported. **CSL ≠ fill rate:** both are reported for every policy. |
+| **GS-M-14** Newsvendor [STD] | Critical ratio $\mathit{CR}=C_u/(C_u+C_o)$, with $\mathit{C}_u$ = lost margin + goodwill and $\mathit{C}_o$ = cost − salvage + holding. $\mathit{Q}^*=F^{-1}(\mathit{CR})$ from the forecast **distribution** (Poisson / NB / empirical for counts). Used for seasonal, perishable and one-shot buys. Report expected leftover $\mathit{E}[(Q-D)^+]$, expected shortage $\mathit{E}[(D-Q)^+]$ and fill rate $1-E[(D-Q)^+]/E[D]$. |
 | **GS-M-10** Probabilistic | Policies are evaluated on simulated demand paths. Lead-time totals come from summed paths, never summed quantiles. |
 | **GS-K-08 / GS-K-09** | CSL = cycles without stockout / cycles (cycle qualifier always stated). Unit fill rate = units filled from on-hand at the time of demand / units demanded (unconstrained). |
 | **GS-K-11** DOS | Average on-hand from the simulation is converted to **forward** days of supply against the forecast (stated as forward, on-hand only). |
@@ -52,19 +52,19 @@ metadata:
 | Otherwise | (R, S), with R = the review calendar rounded from EOQ/D |
 
 **Order quantity:**
-- $\mathit{EOQ}=\sqrt{2DK/h}$, with $h$ = holding rate × unit cost.
+- $\mathit{EOQ}=\sqrt{2DK/h}$, with $\mathit{h}$ = holding rate × unit cost.
 - Rounded up to the pack multiple and to at least the MOQ.
 - Capped at the shelf-life quantity (max days × daily forecast). If the MOQ exceeds the cap → `MOQ_EXCEEDS_SHELF_LIFE`.
-- (s, S): $S=s+Q_{EOQ}$ [RoT].
+- (s, S): $\mathit{S}=s+Q_{EOQ}$ [RoT].
 
 **Simulation timing (deterministic):**
 - Each period: receive orders due → serve demand (backorder or lost-sales mode) → review and order.
-- An order placed at the end of period $t$ arrives at the start of $t+L+1$, so exactly $L$ periods of demand fall within the lead time.
+- An order placed at the end of period $\mathit{t}$ arrives at the start of $\mathit{t}+L+1$, so exactly $\mathit{L}$ periods of demand fall within the lead time.
 - A cycle is the time between consecutive receipts; it has a stockout if any demand in it went unfilled.
 
 **Acceptance rules [RoT]:**
 - A policy passes if simulated service ≥ target − 0.5 pp.
-- (s, Q) and (s, S) reviewed per period overshoot their trigger: expected undershoot $E[U]\approx(\mu^2+\sigma^2)/(2\mu)$ per review period (a renewal-theory approximation). Raise $s$ by $E[U]$ first, then **bisection-search** $s$ (or $S$) on common random demand paths until the target is met.
+- (s, Q) and (s, S) reviewed per period overshoot their trigger: expected undershoot $\mathit{E}[U]\approx(\mu^2+\sigma^2)/(2\mu)$ per review period (a renewal-theory approximation). Raise $\mathit{s}$ by $\mathit{E}[U]$ first, then **bisection-search** $\mathit{s}$ (or $\mathit{S}$) on common random demand paths until the target is met.
 
 ## 3. Required Inputs & Data Schema
 | Table | Columns | Notes |
@@ -82,20 +82,20 @@ metadata:
 1. **Policy family** from the rule table.
 2. **Order quantity:** EOQ → round to pack and MOQ → shelf-life cap (flags). For newsvendor items, skip to step 6.
 3. **Levels** from SS results:
-   - (s, Q): $s=\mu L+SS_L$
-   - (R, S): $S=\mu(R+L)+SS_{R+L}$
-   - (s, S): $s=\mu L+SS_L$ and $S=s+Q$
+   - (s, Q): $\mathit{s}=\mu L+\mathit{SS}_L$
+   - (R, S): $\mathit{S}=\mu(R+L)+\mathit{SS}_{R+L}$
+   - (s, S): $\mathit{s}=\mu L+\mathit{SS}_L$ and $\mathit{S}=s+Q$
 
    Apply the undershoot adjustment to (s, Q) and (s, S).
 4. **Simulate** with seeded demand paths (forecast ± error σ, using the same distribution route as the SS skill: normal, Poisson/NB, or gamma/empirical) and lead-time draws. Record CSL, fill rate, average on-hand, orders and stockout units.
-5. **Search** if service < target − 0.5 pp: bisect $s$ (or $S$) on common random paths, and record the simulated level that replaces the closed form (`SIM_ADJUSTED`).
+5. **Search** if service < target − 0.5 pp: bisect $\mathit{s}$ (or $\mathit{S}$) on common random paths, and record the simulated level that replaces the closed form (`SIM_ADJUSTED`).
 6. **Newsvendor:**
-   - $\mathit{CR}=C_u/(C_u+C_o)$ and $Q^*=F^{-1}(CR)$.
+   - $\mathit{CR}=C_u/(C_u+C_o)$ and $\mathit{Q}^*=F^{-1}(\mathit{CR})$.
    - Report leftover, shortage and fill rate.
-   - Multi-store buys are allocated by store forecast shares, and the sum of rounded store quantities must equal $Q^*$ (largest remainder).
+   - Multi-store buys are allocated by store forecast shares, and the sum of rounded store quantities must equal $\mathit{Q}^*$ (largest remainder).
 7. **Cost:** ordering $= \text{orders/yr}\times K$; holding $= \bar I\times c\times h$. Shortage is treated as a **service constraint**, not a cost, unless the user supplies a shortage cost.
 8. **Choose:** lowest cost among candidate policies meeting the target; if none meets it, the highest-service policy, flagged `TARGET_UNREACHABLE`.
-9. **Publish:** policy record, max stock (= $s+Q$ or $S$) for inventory health, forward DOS of average on-hand, and the delta vs. the current policy (cost, inventory value, service).
+9. **Publish:** policy record, max stock (= $\mathit{s}+Q$ or $\mathit{S}$) for inventory health, forward DOS of average on-hand, and the delta vs. the current policy (cost, inventory value, service).
 10. **Output** (Section 6).
 
 ## 5. Verification Snippets
@@ -221,7 +221,7 @@ if __name__ == "__main__":                                  # self-test: reprodu
     assert [round(c["cost"]) for c in cands] == [1026, 2746] and choose_policy(cands, 0.99) == ("RS", True)
     print("self-test passed")
 ```
-**Test vector** (executed by the `__main__` self-test above; 2,080 weeks of N(100, 20²) demand, seed 1, L = 2, target 95% CSL):
+**Test vector** (verified by the `__main__` self-test above; 2,080 weeks of N(100, 20²) demand, seed 1, L = 2, target 95% CSL):
 - **Order quantity:**
   - EOQ(D = 5,200, K = 50, c = 10, h = 25%) = **456.07** → pack 24 / MOQ 300 → **480**.
   - Shelf cap 450 → **432** (`SHELF_LIFE_CAPPED`).

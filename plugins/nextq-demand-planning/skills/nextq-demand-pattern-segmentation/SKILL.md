@@ -33,9 +33,9 @@ metadata:
 |---|---|
 | **GS-M-03** Demand classification [STD] | Compute on the **cleaned, unconstrained** history (`train_mask = true`) at the planning bucket. $\text{ADI} = \dfrac{\#\text{periods}}{\#\{t: y_t>0\}}$, and $\text{CV}^2 = \left(\dfrac{\sigma(y_t\mid y_t>0)}{\mu(y_t\mid y_t>0)}\right)^2$ using the population SD ($\text{ddof}=0$) of non-zero sizes. **Smooth:** ADI < 1.32 & CV² < 0.49. **Erratic:** ADI < 1.32 & CV² ≥ 0.49. **Intermittent:** ADI ≥ 1.32 & CV² < 0.49. **Lumpy:** ADI ≥ 1.32 & CV² ≥ 0.49. **Caveats:** the cut-offs were derived to choose Croston vs. SBA (Syntetos, Boylan & Croston 2005). Kostenko & Hyndman (2006) show the exact boundary is non-linear (limits p = 4/3, v = 0.5) and that SBA is better over most of the region. Treat the quadrant as **routing only**, and use SBA (not Croston) as the intermittent default. Do **not** classify with < 2 non-zero observations or < 1 full seasonal cycle; route those series to `NEW_SPARSE`. |
 | **GS-M-04** Routing rules | Smooth/erratic: ETS/ARIMA (weekly: STL+ETS or DHR; daily: multi-seasonal + holiday dummies). Erratic with zeros: also test SBA. Intermittent/lumpy: SBA default, TSB if obsolescence risk, ADIDA/iMAPA. Causal drivers present: dynamic regression / ML. Always confirm with a backtest. |
-| **GS-M-08** Count / zero-inflated distribution | **Small counts:** max ≤ 10 per period or zero share ≥ 30% [RoT] → do not assume normal. Variance-to-mean ratio $\text{VMR} = \sigma^2/\mu$ over all train periods: VMR ≈ 1 (0.8–1.2 [RoT]) → **Poisson**; VMR > 1.2 → **Negative Binomial**. Observed zero share > the expected zero share under the fitted Poisson/NB by > 10 percentage points [RoT] → **ZIP/ZINB or hurdle**. Lumpy (CV² ≥ 0.49 & ADI ≥ 1.32) → **compound (Poisson-gamma / stuttering Poisson)** candidate. Expected zero share: Poisson $e^{-\mu}$; NB $\left(\frac{r}{r+\mu}\right)^r$ with $r=\mu^2/(\sigma^2-\mu)$. |
-| **GS-G-09** ABC × XYZ × class | **ABC** by trailing-12-month (or 52-week) value = Σ(qty × unit cost). Cumulative share: A ≤ 80%, B ≤ 95%, C rest [RoT]. **XYZ** by forecastability, assigned on the CV of period demand $\text{CV}=\sigma(y)/\mu(y)$ (population SD, all train periods): X ≤ 0.5, Y ≤ 1.0, Z > 1.0 [RoT]. The in-sample naïve scale $s$ (GS-K-04) and the relative naïve error $s/\bar y$ are reported alongside it as a secondary forecastability indicator. The segment sets review frequency, CSL target tier, override eligibility, and model family. |
-| **GS-K-04** MASE scale | Report the in-sample naïve scale $s = \frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t - y_{t-m}\rvert$ ($m=1$ if non-seasonal) as the forecastability denominator downstream skills must reuse. If $s = 0$ (constant series), flag `SCALE_ZERO` and fall back to WAPE. |
+| **GS-M-08** Count / zero-inflated distribution | **Small counts:** max ≤ 10 per period or zero share ≥ 30% [RoT] → do not assume normal. Variance-to-mean ratio $\text{VMR} = \sigma^2/\mu$ over all train periods: VMR ≈ 1 (0.8–1.2 [RoT]) → **Poisson**; VMR > 1.2 → **Negative Binomial**. Observed zero share > the expected zero share under the fitted Poisson/NB by > 10 percentage points [RoT] → **ZIP/ZINB or hurdle**. Lumpy (CV² ≥ 0.49 & ADI ≥ 1.32) → **compound (Poisson-gamma / stuttering Poisson)** candidate. Expected zero share: Poisson $\mathit{e}^{-\mu}$; NB $\left(\frac{r}{r+\mu}\right)^r$ with $\mathit{r}=\mu^2/(\sigma^2-\mu)$. |
+| **GS-G-09** ABC × XYZ × class | **ABC** by trailing-12-month (or 52-week) value = Σ(qty × unit cost). Cumulative share: A ≤ 80%, B ≤ 95%, C rest [RoT]. **XYZ** by forecastability, assigned on the CV of period demand $\text{CV}=\sigma(y)/\mu(y)$ (population SD, all train periods): X ≤ 0.5, Y ≤ 1.0, Z > 1.0 [RoT]. The in-sample naïve scale $\mathit{s}$ (GS-K-04) and the relative naïve error $\mathit{s}/\bar y$ are reported alongside it as a secondary forecastability indicator. The segment sets review frequency, CSL target tier, override eligibility, and model family. |
+| **GS-K-04** MASE scale | Report the in-sample naïve scale $\mathit{s} = \frac{1}{T-m}\sum_{t=m+1}^{T}\lvert y_t - y_{t-m}\rvert$ ($\mathit{m}=1$ if non-seasonal) as the forecastability denominator downstream skills must reuse. If $\mathit{s} = 0$ (constant series), flag `SCALE_ZERO` and fall back to WAPE. |
 | **GS-D-02 / GS-D-12** | Structural zeros are excluded from ADI/CV². Lifecycle `NEW` (< 1 cycle) → `NEW_SPARSE`. `PHASE_OUT` → TSB / run-out. |
 | **GS-G-10** | Standard output contract. |
 
@@ -59,10 +59,10 @@ metadata:
 
 **Minimum history:** ≥ 1 full seasonal cycle (52 weeks / 12 months) **and** ≥ 2 non-zero periods in the train mask. Otherwise the series is `NEW_SPARSE`. Recommended: ≥ 2 cycles for seasonality detection.
 
-**Seasonality test (for routing only):** seasonal strength from STL, $F_S = \max\left(0, 1 - \frac{\operatorname{Var}(R)}{\operatorname{Var}(S+R)}\right)$ (FPP3 §4.3). Flag `SEASONAL` when $F_S ≥ 0.64$ [RoT] and history ≥ 2 cycles. Not computed for ADI ≥ 1.32.
+**Seasonality test (for routing only):** seasonal strength from STL, $\mathit{F}_S = \max\left(0, 1 - \frac{\operatorname{Var}(R)}{\operatorname{Var}(S+R)}\right)$ (FPP3 §4.3). Flag `SEASONAL` when $\mathit{F}_S ≥ 0.64$ [RoT] and history ≥ 2 cycles. Not computed for ADI ≥ 1.32.
 
 ## 4. Execution Workflow
-1. **Load and filter.** Keep rows with `train_mask = true`. Record `n_periods`, `n_nonzero`, `pct_reconstructed`, and `needs_model_recon_share`. If `needs_model_recon_share > 0.30`, set `LOW_CONFIDENCE` (GS-M-11 carry-through).
+1. **Load and filter.** Keep rows with `train_mask = true`. Record `n_periods`, `n_nonzero`, `pct_reconstructed`, and `needs_model_recon_share`. If `needs_model_recon_share > 0.30`, flag `LOW_CONFIDENCE` (GS-M-11 carry-through).
 2. **Eligibility gate.**
    - `n_nonzero < 2` OR `n_periods < m` → `segment = NEW_SPARSE`, route `R_NEW_ANALOG`. Skip steps 3–5.
    - All zeros → `NO_DEMAND`, route `R_OBSOLESCENCE_REVIEW`.
@@ -81,9 +81,9 @@ class = SMOOTH        if ADI < 1.32 and CV2 < 0.49
 7. **Obsolescence flag** (rule above).
 8. **ABC:**
    - Sort item-locations by value descending.
-   - Compute cumulative share $c_i$. Assign A if $c_i ≤ 0.80$, B if $c_i ≤ 0.95$, else C. The item that crosses a boundary takes the higher class.
+   - Compute cumulative share $\mathit{c}_i$. Assign A if $\mathit{c}_i ≤ 0.80$, B if $\mathit{c}_i ≤ 0.95$, else C. The item that crosses a boundary takes the higher class.
 9. **XYZ:**
-   - Compute CV of period demand and the in-sample naïve scale $s$.
+   - Compute CV of period demand and the in-sample naïve scale $\mathit{s}$.
    - Assign X if CV ≤ 0.5, Y if CV ≤ 1.0, else Z.
    - Intermittent and lumpy series are Z by definition unless CV ≤ 1.0 (they are then flagged Y).
 10. **Routing code** (first match wins):

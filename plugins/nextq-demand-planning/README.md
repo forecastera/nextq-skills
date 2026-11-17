@@ -8,7 +8,8 @@ Claude loads a skill automatically when your request matches it. For example: "s
 
 In Claude Code:
 ```
-/plugin install nextq-demand-planning --marketplace forecastera/nextq-skills
+claude plugin marketplace add forecastera/nextq-skills
+claude plugin install nextq-demand-planning@nextq
 ```
 On claude.ai (Team / Enterprise), your organization Owner adds it under **Organization settings > Plugins & skills**.
 
@@ -57,7 +58,7 @@ On claude.ai (Team / Enterprise), your organization Owner adds it under **Organi
 
 ## What this plugin runs and sends
 
-This plugin contains **instructions only**: Markdown skill files and one reference document. It ships no scripts, hooks, MCP servers or binaries. It does not contact any external service and does not send your data anywhere. When a skill needs a calculation, Claude runs it in its own code-execution environment on the data you provide in the conversation.
+This plugin contains **instructions only**: Markdown skill files and one reference document. It ships no scripts, hooks, MCP servers or binaries. It does not contact any external service and does not send your data anywhere. When a skill needs a calculation, Claude runs it with the code tool available where you use it (the code-execution sandbox on claude.ai, or your local shell in Claude Code, subject to your permission settings), on data you provide.
 
 ## Important
 

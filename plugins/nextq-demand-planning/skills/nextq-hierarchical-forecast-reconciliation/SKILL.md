@@ -29,15 +29,15 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-D-07** Coherent mapping [STD] | Every coherent method is $\tilde{\boldsymbol y}_h = \boldsymbol S\boldsymbol G\hat{\boldsymbol y}_h$. Here $\boldsymbol S$ is the $n\times m$ summing matrix ($n$ total nodes, $m$ bottom series; $\boldsymbol y_t=\boldsymbol S\boldsymbol b_t$), and $\boldsymbol G$ ($m\times n$) maps base forecasts to the bottom level (FPP3 §11.3). **Bottom-up:** $\boldsymbol G=[\boldsymbol 0_{m\times(n-m)}\mid \boldsymbol I_m]$. **Top-down:** $\boldsymbol G=[\boldsymbol p\mid \boldsymbol 0]$ with proportions $p_j$. **Middle-out:** forecasts at middle level $k$ summed upward, top-down below. Top-down and middle-out apply **only to strictly nested hierarchies**, not grouped (crossed) structures. |
-| **GS-D-07** Top-down proportions [STD] | (i) **Average historical proportions** $p_j=\frac1T\sum_{t=1}^{T}\frac{y_{j,t}}{y_t}$. (ii) **Proportions of historical averages** $p_j=\frac{\sum_t y_{j,t}/T}{\sum_t y_t/T}$. (iii) **Forecast proportions** (default top-down): $p_j=\prod_{\ell=0}^{K-1}\frac{\hat y^{(\ell)}_{j,h}}{\hat S^{(\ell+1)}_{j,h}}$, i.e. split each parent by its children's base-forecast shares, level by level. **All top-down methods are biased**: they violate $\boldsymbol S\boldsymbol G\boldsymbol S=\boldsymbol S$ (Hyndman et al. 2011). |
-| **GS-D-08** MinT [STD] | Wickramasuriya, Athanasopoulos & Hyndman (2019): $\tilde{\boldsymbol y}_h=\boldsymbol S(\boldsymbol S'\boldsymbol W_h^{-1}\boldsymbol S)^{-1}\boldsymbol S'\boldsymbol W_h^{-1}\hat{\boldsymbol y}_h$. This minimizes $\operatorname{tr}(\boldsymbol V_h)$ with $\boldsymbol V_h=\boldsymbol S\boldsymbol G\boldsymbol W_h\boldsymbol G'\boldsymbol S'$, subject to $\boldsymbol S\boldsymbol G\boldsymbol S=\boldsymbol S$ (unbiasedness). Choose $\boldsymbol W_h$ in this priority: **(1) `mint_shrink`** $\hat{\boldsymbol W}=\lambda\hat{\boldsymbol D}+(1-\lambda)\hat{\boldsymbol W}_1$, with $\hat{\boldsymbol D}=\operatorname{diag}(\hat{\boldsymbol W}_1)$ and $\hat\lambda=\frac{\sum_{i\neq j}\widehat{\operatorname{Var}}(\hat r_{ij})}{\sum_{i\neq j}\hat r_{ij}^2}$ on the residual correlations $\hat r_{ij}$ (default when $m$ is large relative to $T$). **(2) `wls_var`** $\boldsymbol W=\operatorname{diag}(\hat{\boldsymbol W}_1)$. **(3) `wls_struct`** $\boldsymbol W=\boldsymbol\Lambda=\operatorname{diag}(\boldsymbol S\boldsymbol 1)$ (use when residuals are unavailable, e.g. judgmental bases). **(4) `ols`** $\boldsymbol W=\boldsymbol I$. $\hat{\boldsymbol W}_1=\frac1T\sum_t\boldsymbol e_t\boldsymbol e_t'$ uses **one-step in-sample residuals of every node**, stacked in the same order as $\boldsymbol y$. |
+| **GS-D-07** Coherent mapping [STD] | Every coherent method is $\tilde{\boldsymbol y}_h = \boldsymbol S\boldsymbol G\hat{\boldsymbol y}_h$. Here $\boldsymbol S$ is the $\mathit{n}\times m$ summing matrix ($\mathit{n}$ total nodes, $\mathit{m}$ bottom series; $\boldsymbol y_t=\boldsymbol S\boldsymbol b_t$), and $\boldsymbol G$ ($\mathit{m}\times n$) maps base forecasts to the bottom level (FPP3 §11.3). **Bottom-up:** $\boldsymbol G=[\boldsymbol 0_{m\times(n-m)}\mid \boldsymbol I_m]$. **Top-down:** $\boldsymbol G=[\boldsymbol p\mid \boldsymbol 0]$ with proportions $\mathit{p}_j$. **Middle-out:** forecasts at middle level $\mathit{k}$ summed upward, top-down below. Top-down and middle-out apply **only to strictly nested hierarchies**, not grouped (crossed) structures. |
+| **GS-D-07** Top-down proportions [STD] | (i) **Average historical proportions** $\mathit{p}_j=\frac1T\sum_{t=1}^{T}\frac{y_{j,t}}{y_t}$. (ii) **Proportions of historical averages** $\mathit{p}_j=\frac{\sum_t y_{j,t}/T}{\sum_t y_t/T}$. (iii) **Forecast proportions** (default top-down): $\mathit{p}_j=\prod_{\ell=0}^{K-1}\frac{\hat y^{(\ell)}_{j,h}}{\hat S^{(\ell+1)}_{j,h}}$, i.e. split each parent by its children's base-forecast shares, level by level. **All top-down methods are biased**: they violate $\boldsymbol S\boldsymbol G\boldsymbol S=\boldsymbol S$ (Hyndman et al. 2011). |
+| **GS-D-08** MinT [STD] | Wickramasuriya, Athanasopoulos & Hyndman (2019): $\tilde{\boldsymbol y}_h=\boldsymbol S(\boldsymbol S'\boldsymbol W_h^{-1}\boldsymbol S)^{-1}\boldsymbol S'\boldsymbol W_h^{-1}\hat{\boldsymbol y}_h$. This minimizes $\operatorname{tr}(\boldsymbol V_h)$ with $\boldsymbol V_h=\boldsymbol S\boldsymbol G\boldsymbol W_h\boldsymbol G'\boldsymbol S'$, subject to $\boldsymbol S\boldsymbol G\boldsymbol S=\boldsymbol S$ (unbiasedness). Choose $\boldsymbol W_h$ in this priority: **(1) `mint_shrink`** $\hat{\boldsymbol W}=\lambda\hat{\boldsymbol D}+(1-\lambda)\hat{\boldsymbol W}_1$, with $\hat{\boldsymbol D}=\operatorname{diag}(\hat{\boldsymbol W}_1)$ and $\hat\lambda=\frac{\sum_{i\neq j}\widehat{\operatorname{Var}}(\hat r_{ij})}{\sum_{i\neq j}\hat r_{ij}^2}$ on the residual correlations $\hat r_{ij}$ (default when $\mathit{m}$ is large relative to $\mathit{T}$). **(2) `wls_var`** $\boldsymbol W=\operatorname{diag}(\hat{\boldsymbol W}_1)$. **(3) `wls_struct`** $\boldsymbol W=\boldsymbol\Lambda=\operatorname{diag}(\boldsymbol S\boldsymbol 1)$ (use when residuals are unavailable, e.g. judgmental bases). **(4) `ols`** $\boldsymbol W=\boldsymbol I$. $\hat{\boldsymbol W}_1=\frac1T\sum_t\boldsymbol e_t\boldsymbol e_t'$ uses **one-step in-sample residuals of every node**, stacked in the same order as $\boldsymbol y$. |
 | **GS-D-08** Non-negativity | Reconciled forecasts can be negative. Fix: set negative **bottom** values to 0 and re-aggregate bottom-up from the clipped bottom level (coherent by construction). Alternatively, use a constrained solver. **Log** the count and volume of clipped values. |
 | **GS-M-05** Means add, medians don't | Reconcile **means**. Back-transformed (log/Box-Cox) bases must be bias-adjusted to the mean before reconciliation (FPP3 §5.6). |
-| **GS-M-10** Probabilistic reconciliation | If the base forecasts are Gaussian $N(\hat\mu,\hat\Sigma)$, then the reconciled forecasts are $N(\boldsymbol S\boldsymbol G\hat\mu,\ \boldsymbol S\boldsymbol G\hat\Sigma\boldsymbol G'\boldsymbol S')$. Otherwise reconcile each of $B$ simulated **sample paths** $(\boldsymbol S\boldsymbol G\hat{\boldsymbol y}^{[b]})$ and take quantiles (Panagiotelis et al. 2023; FPP3 §11.5). Never sum quantiles. |
-| **GS-D-09** Temporal hierarchies | Weekly ↔ 4-weekly ↔ quarterly (or day ↔ week) form a temporal hierarchy (Athanasopoulos et al. 2017). The same $\boldsymbol S\boldsymbol G$ machinery applies with $\boldsymbol S$ built from the time-aggregation matrix. Calendar months that are not whole weeks must first be converted with day apportionment (`nextq-time-bucket-calendar-alignment`). |
+| **GS-M-10** Probabilistic reconciliation | If the base forecasts are Gaussian $\mathit{N}(\hat\mu,\hat\Sigma)$, then the reconciled forecasts are $\mathit{N}(\boldsymbol S\boldsymbol G\hat\mu,\ \boldsymbol S\boldsymbol G\hat\Sigma\boldsymbol G'\boldsymbol S')$. Otherwise reconcile each of $\mathit{B}$ simulated **sample paths** $\left(\boldsymbol S\boldsymbol G\hat{\boldsymbol y}^{[b]}\right)$ and take quantiles (Panagiotelis et al. 2023; FPP3 §11.5). Never sum quantiles. |
+| **GS-D-09** Temporal hierarchies | Weekly data aggregated to 2-, 4-, 13-, 26- and 52-week buckets (factors of 52, each built from weekly), or day ↔ week, form a temporal hierarchy (Athanasopoulos et al. 2017). The same $\boldsymbol S\boldsymbol G$ machinery applies with $\boldsymbol S$ built from the time-aggregation matrix. Calendar months that are not whole weeks must first be converted with day apportionment (`nextq-time-bucket-calendar-alignment`). |
 | **GS-M-16 / GS-K-04 / GS-K-01** | Method choice by rolling-origin backtest, **scored per level** with scale-free MASE (seasonal-naïve training scale per node) and WAPE per level. Never compare RMSE across levels, because aggregates dominate. Report "All series" as the mean of per-node MASE. |
-| **GS-G-11** Verification | $\lvert \text{parent}-\sum\text{children}\rvert\le10^{-6}\cdot\max(\lvert\text{parent}\rvert,1)$ at every node and period. For any non-top-down $\boldsymbol G$: $\lVert\boldsymbol S\boldsymbol G\boldsymbol S-\boldsymbol S\rVert_\infty<10^{-8}$. |
+| **GS-G-11** Verification | $\lvert \text{parent}-\sum\text{children}\rvert\le10^{-6}\cdot\max(\lvert\text{parent}\rvert,1)$ at every node and period. For BU / OLS / WLS / MinT $\boldsymbol G$: $\lVert\boldsymbol S\boldsymbol G\boldsymbol S-\boldsymbol S\rVert_\infty<10^{-8}$. |
 | **GS-G-03** Exceptions | Unreconciled delta > 0.5% at any node in the **incoming** base set (flags upstream disagreement) [RoT]. Reconciliation adjustment $\lvert\tilde y-\hat y\rvert/\hat y$ > 25% at a node [RoT]. Non-negativity clipping > 1% of volume [RoT]. |
 | **GS-G-10** | Standard output contract. |
 
@@ -60,7 +60,7 @@ metadata:
 
 | Column | Type | Unit | Req. |
 |---|---|---|---|
-| `node_id` | string (bottom_id or aggregate key like `region=EU|brand=X`) | n/a | Y |
+| `node_id` | string (bottom_id or aggregate key like `region:EU/brand:X`) | n/a | Y |
 | `level` | string | n/a | Y |
 | `origin` | date | n/a | Y |
 | `target_period` | date | fiscal bucket | Y |
@@ -69,7 +69,7 @@ metadata:
 | `model`, `forecast_version` | string | n/a | Y |
 | `path_id`, `fcst_path` | int, decimal | n/a | N (sample paths for probabilistic reconciliation) |
 
-**`residuals`**: `node_id, period, resid_1step` (in-sample one-step $e_t$, same window for every node). Required for WLS-var and MinT. If absent, only BU/TD/MO/OLS/WLS-struct are allowed, and the run is flagged `NO_RESIDUALS`.
+**`residuals`**: `node_id, period, resid_1step` (in-sample one-step $\mathit{e}_t$, same window for every node). Required for WLS-var and MinT. If absent, only BU/TD/MO/OLS/WLS-struct are allowed, and the run is flagged `NO_RESIDUALS`.
 
 **`actuals`**: `bottom_id, period, actual_unconstrained` (aggregates are computed via $\boldsymbol S$, never loaded separately).
 
@@ -77,15 +77,15 @@ metadata:
 
 **Minimum:**
 - ≥ 3 origins for method selection (GS-M-16).
-- For MinT-shrink, residual window $T$ ≥ 2 seasonal cycles recommended.
-- With $T < m$ bottom series, use shrink (sample covariance is singular).
+- For MinT-shrink, residual window $\mathit{T}$ ≥ 2 seasonal cycles recommended.
+- With $\mathit{T}$ smaller than the total number of series in the hierarchy, use shrink (sample covariance is singular).
 
 ## 4. Execution Workflow
 1. **Build $\boldsymbol S$.** Rows run from top to bottom (total, level 1, …, bottom identity $\boldsymbol I_m$). For grouped structures, add one row per crossed aggregate. Store `node_index`. Validate: every bottom maps to exactly one parent per nested level, and node IDs are unique.
 2. **Align bases.** For each origin and lag, stack $\hat{\boldsymbol y}_h$ in `node_index` order.
    - Missing node forecast: BU-fill the aggregate from its children, or flag `MISSING_BASE`. MinT requires every node.
    - Check **incoming incoherence** at each parent, $\delta=\lvert\hat y_{\text{parent}}-\sum\hat y_{\text{children}}\rvert/\hat y_{\text{parent}}$. Flag if > 0.5%.
-3. **Estimate $\boldsymbol W$** from residuals (same $T$ for all nodes; drop periods where any node is missing).
+3. **Estimate $\boldsymbol W$** from residuals (same $\mathit{T}$ for all nodes; drop periods where any node is missing).
    - Compute $\hat{\boldsymbol W}_1$ and shrinkage $\hat\lambda$ (clip to [0,1]).
    - Check positive definiteness. If it fails, increase λ to 1 (i.e., WLS-var) and log it.
 4. **Compute $\boldsymbol G$** for each candidate.
@@ -158,7 +158,7 @@ def assert_unbiased(S, G, tol=1e-8):
     assert np.abs(S @ G @ S - S).max() < tol, "SGS != S (biased mapping)"
 ```
 ```python
-# Self-test (executed): 2-region x 2-item hierarchy, noisy incoherent bases
+# Self-test (verified): 2-region x 2-item hierarchy, noisy incoherent bases
 rng = np.random.default_rng(7)
 hier = pd.DataFrame({"bottom_id": ["A1", "A2", "B1", "B2"], "region": ["A", "A", "B", "B"]})
 S, nodes = build_S(hier, ["region"])                         # n=7, m=4
@@ -236,7 +236,7 @@ S matrix hash; node order; method; λ; residual window; origins; tolerance; code
 - **Grouped (crossed) structures:** TD and MO are disabled (no unique parent path). Use BU or MinT family only.
 - **All-zero intermittent bottoms under a positive parent:** MinT can push negatives. Apply the clip-and-re-aggregate fix. If clipping exceeds 1% of volume, prefer WLS-struct or BU for that sub-tree and log it.
 - **Units vs. value:** never reconcile a mix. Reconcile units, then price at the bottom level for value (`nextq-demand-financial-reconciliation`).
-- **Judgmental overrides at an aggregate** (from `nextq-consensus-demand-review`): treat the override as the base for that node, use WLS-struct (no residuals), or **lock** the node by setting a tiny $W_{ii}$ (e.g., $10^{-6}\times$ the median diagonal) so reconciliation preserves it. Log `LOCKED_NODE`.
-- **Large $m$** (> 10⁴ bottoms): use sparse $\boldsymbol S$ and an iterative or block solver, or reconcile per top-level sub-tree when sub-trees are independent. Document the approximation.
+- **Judgmental overrides at an aggregate** (from `nextq-consensus-demand-review`): treat the override as the base for that node, use WLS-struct (no residuals), or **lock** the node by setting a tiny $\mathit{W}_{ii}$ (e.g., $10^{-6}\times$ the median diagonal) so reconciliation preserves it. Log `LOCKED_NODE`.
+- **Large $\mathit{m}$** (> 10⁴ bottoms): use sparse $\boldsymbol S$ and an iterative or block solver, or reconcile per top-level sub-tree when sub-trees are independent. Document the approximation.
 - **Temporal + cross-sectional:** reconcile temporally first, then cross-sectionally (or cross-temporally, if tooling allows), and verify coherence in both dimensions.
-- **New nodes** with no residual history: give them WLS-struct weights within MinT by imputing $W_{ii}$ from the median residual variance of their level, and flag `IMPUTED_W`.
+- **New nodes** with no residual history: give them WLS-struct weights within MinT by imputing $\mathit{W}_{ii}$ from the median residual variance of their level, and flag `IMPUTED_W`.

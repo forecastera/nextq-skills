@@ -22,20 +22,20 @@ metadata:
 ## 1. Role & Objective
 **Persona:** Senior Demand Data Steward / Forecasting Data Engineer.
 **Decision supported:** Is this history fit to train models and set inventory policy? Which periods are true demand, which are structural or missing, and which are censored by stockouts?
-**Objective:** Produce a canonical, immutable-source, fully lineage-logged demand table. Its key is `item × location × period`, in base UoM. Every period carries one of four states: `TRUE_ZERO`, `STRUCTURAL_ZERO`, `MISSING`, `CENSORED`, or `OBSERVED`. Outliers are explained, and every change is reversible.
+**Objective:** Produce a canonical, immutable-source, fully lineage-logged demand table. Its key is `item × location × period`, in base UoM. Every period carries one of five states: `TRUE_ZERO`, `STRUCTURAL_ZERO`, `MISSING`, `CENSORED`, or `OBSERVED`. Outliers are explained, and every change is reversible.
 
 This skill **flags** censoring and applies only the GS-M-11 methods (a) and (b), labeled `INTERIM_RECON`. Rows it cannot resolve carry `needs_model_recon = true`; `nextq-unconstrained-demand-reconstruction` completes them (implied orders, EM/Tobit, model imputation, substitution netting) with the same thresholds and never overwrites (a)/(b) results.
 
 ## 2. Gold Standard Rules Enforced
-Source: SUPPLY_CHAIN_GOLD_STANDARD.md (rules inlined below). Labels: [STD] = authoritative, [RoT] = configurable rule of thumb.
+Rules are inlined below from the Next Quarter Supply Chain Gold Standard. Labels: [STD] = authoritative, [RoT] = configurable rule of thumb.
 
 | Rule | What this skill enforces (inlined) |
 |---|---|
 | **GS-D-01** Canonical grain | Key = `item_id × location_id × period_start` (+`channel` if present). All quantities are in **base UoM** via an auditable conversion table. Standard grains: SKU-Location-**Day** (POS/sensing), SKU-Location-**Week** (operational), Family-Region-**Month** (S&OP). |
 | **GS-D-02** Zero ≠ missing ≠ censored | **True zero:** listed, available, no demand → keep 0. **Structural zero:** not ranged, store closed, pre-launch, discontinued → mask, never train on it. **Missing:** no record → impute + flag. **Censored:** sales limited by availability → reconstruct (GS-M-11). |
-| **GS-M-11** Censoring detection | A period is censored if `on_hand ≤ 0` (start or end) OR `in_stock_pct < 1.00` OR `backorder_qty > 0` OR `order_cut_qty > 0`. It is **materially censored** if `in_stock_pct < 0.95` [RoT]. Reconstruction priority: **(a)** use orders (requested qty and date) when available. **(b)** availability scaling $\hat D_t = S_t / a_t$, with $a_t$ = demand-profile-weighted in-stock fraction, uplift **capped at ×2**, and not applied when $a_t < 0.5$ (send to method (c)). **(c)** EM/Tobit, deferred to C2. **(d)** model interpolation, marked imputed. If **> 30%** of an item's periods are reconstructed, flag `LOW_CONFIDENCE` [RoT]. |
+| **GS-M-11** Censoring detection | A period is censored if `on_hand ≤ 0` (start or end) OR `in_stock_pct < 1.00` OR `backorder_qty > 0` OR `order_cut_qty > 0`. It is **materially censored** if `in_stock_pct < 0.95` [RoT]. Reconstruction priority: **(a)** use orders (requested qty and date) when available. **(b)** availability scaling $\hat D_t = S_t / a_t$, with $\mathit{a}_t$ = demand-profile-weighted in-stock fraction, uplift **capped at ×2**, and not applied when $\mathit{a}_t < 0.5$ (send to method (c)). **(c)** EM/Tobit, deferred to C2. **(d)** model interpolation, marked imputed. If **> 30%** of an item's periods are reconstructed, flag `LOW_CONFIDENCE` [RoT]. |
 | **GS-D-03** Missing values | Informative missingness (for example, holiday closure) → mark it as an event and do not impute. Random missingness → model-based or seasonal-profile interpolation. **Never zero-fill** a missing value. If **> 20%** of history is missing or any gap is **> 1 seasonal cycle**, use only post-gap history or flag the series [RoT]. |
-| **GS-D-04** Outliers | Robust STL-type decomposition (default: median engine, §5.2; `STL(robust=True)` as a cross-check). An outlier is a remainder outside $[Q_1 - 3\,\text{IQR},\ Q_3 + 3\,\text{IQR}]$ (FPP3 §13.9 preferred rule; 1.5×IQR is the loose alternative). Explain it before treating it. Known recurring causes (promo, event) are kept and flagged as regressors. Confirmed data errors or non-recurring one-offs are replaced by interpolation. For intermittent series (ADI ≥ 1.32), skip STL and use 3×IQR on **non-zero sizes only**. |
+| **GS-D-04** Outliers | Robust STL-type decomposition (default: median engine, §5.2; `STL(robust=True)` as a cross-check). An outlier is a remainder outside $\left[Q_1 - 3\,\text{IQR},\ Q_3 + 3\,\text{IQR}\right]$ (FPP3 §13.9 preferred rule; 1.5×IQR is the loose alternative). Explain it before treating it. Known recurring causes (promo, event) are kept and flagged as regressors. Confirmed data errors or non-recurring one-offs are replaced by interpolation. For intermittent series (ADI ≥ 1.32), skip STL and use 3×IQR on **non-zero sizes only**. |
 | **GS-D-12** Lifecycle & master data | Supersession: chain old-SKU history into the new SKU using `conversion_factor`. Pre-launch and post-discontinuation periods become `STRUCTURAL_ZERO`. |
 | **GS-D-11** Signal hierarchy | Prefer POS/sell-out, then orders (requested date), then shipments. Shipments are a constrained proxy, so never use them as demand when orders exist. |
 | **GS-D-13** Lineage | Every change is logged with `before, after, rule_id, method, timestamp, run_id`. The raw table is immutable. |
@@ -88,7 +88,7 @@ Source: SUPPLY_CHAIN_GOLD_STANDARD.md (rules inlined below). Labels: [STD] = aut
 **Step 1: Unit of measure.** Compute `qty_base = qty × factor`. If any item lacks a factor, stop: `EXC_UOM_MISSING`.
 
 **Step 2: Supersession chaining (GS-D-12).**
-- For each chain old → new effective at date $d$, append the old history before $d$ to the new SKU as `qty × conversion_factor`, with `lineage.rule = GS-D-12/SUPERSESSION`.
+- For each chain old → new effective at date $\mathit{d}$, append the old history before $\mathit{d}$ to the new SKU as `qty × conversion_factor`, with `lineage.rule = GS-D-12/SUPERSESSION`.
 - Detect cycles in the chain (A → B → A). If found, stop and report.
 
 **Step 3: Complete the grid.** For each item-location, build every calendar period from `first_listed_date` to `run_end_date`. Absent rows are inserted with `demand_qty = NULL`.
@@ -96,15 +96,15 @@ Source: SUPPLY_CHAIN_GOLD_STANDARD.md (rules inlined below). Labels: [STD] = aut
 **Step 4: Assign period state (GS-D-02).** Apply these in precedence order:
 1. `lifecycle_status ∈ {NOT_RANGED, DISCONTINUED}`, OR before launch, OR `store_open_flag = false` → **STRUCTURAL_ZERO**.
 2. `demand_qty IS NULL` → **MISSING**.
-3. Censoring test (GS-M-11): `on_hand_qty ≤ 0` OR `in_stock_pct < 1` OR `backorder_qty > 0` OR `order_cut_qty > 0` → **CENSORED**. Additionally set `material = in_stock_pct < 0.95`. If `on_hand_qty` is NULL and `in_stock_pct` is NULL → `CENSORING_UNASSESSABLE` (state stays OBSERVED and the run is flagged).
+3. Censoring test (GS-M-11): `on_hand_qty ≤ 0` OR `in_stock_pct < 1` OR `backorder_qty > 0` OR `order_cut_qty > 0` → **CENSORED**. Also mark `material` true when `in_stock_pct` is below 0.95. If `on_hand_qty` is NULL and `in_stock_pct` is NULL → `CENSORING_UNASSESSABLE` (state stays OBSERVED and the run is flagged).
 4. `demand_qty = 0` → **TRUE_ZERO**.
 5. Otherwise → **OBSERVED**.
 
 **Step 5: Interim reconstruction of censored periods (GS-M-11 a/b only).**
-- (a) If `orders_qty` is present and `demand_type ≠ ORDERS`: set `demand_clean = orders_qty_base` (method `ORDERS`).
-- (b) Otherwise, if `in_stock_pct` (= $a_t$) satisfies $0.5 ≤ a_t < 1$: set `demand_clean = min(demand / a_t, 2 × demand)` (method `AVAIL_SCALE`).
-  - Use the day-of-week profile to weight $a_t$ if daily availability is known.
-- If $a_t < 0.5$, or $a_t$ is unknown but `on_hand ≤ 0`: leave `demand_clean = demand` and set `needs_model_recon = true` for C2 (method c/d).
+- (a) If `orders_qty` is present and `demand_type ≠ ORDERS`: `demand_clean` takes `orders_qty_base` (method `ORDERS`).
+- (b) Otherwise, if `in_stock_pct` (= $\mathit{a}_t$) satisfies $0.5 ≤ a_t < 1$: `demand_clean` becomes `min(demand / a_t, 2 × demand)` (method `AVAIL_SCALE`).
+  - Use the day-of-week profile to weight $\mathit{a}_t$ if daily availability is known.
+- If $\mathit{a}_t < 0.5$, or $\mathit{a}_t$ is unknown but `on_hand ≤ 0`: leave `demand_clean` equal to `demand` and flag `needs_model_recon` for `nextq-unconstrained-demand-reconstruction` (method c/d).
 - Compute `pct_reconstructed` per item-location. If it is > 30% → `LOW_CONFIDENCE`.
 
 **Step 6: Missing values (GS-D-03).**
@@ -114,7 +114,7 @@ Source: SUPPLY_CHAIN_GOLD_STANDARD.md (rules inlined below). Labels: [STD] = aut
 
 **Step 7: Outliers (GS-D-04).**
 1. Choose the series to test: `demand_clean` over OBSERVED, TRUE_ZERO, and reconstructed periods (structural periods excluded).
-2. If ADI < 1.32 and length ≥ 2 cycles: compute the robust-decomposition remainder (median engine, §5.2; robust STL as a cross-check) and the bounds $[Q_1 - 3\text{IQR}, Q_3 + 3\text{IQR}]$.
+2. If ADI < 1.32 and length ≥ 2 cycles: compute the robust-decomposition remainder (median engine, §5.2; robust STL as a cross-check) and the bounds $\left[Q_1 - 3\text{IQR}, Q_3 + 3\text{IQR}\right]$.
    - Intermittent series (ADI ≥ 1.32): bounds on non-zero sizes only.
    - Short series: bounds on raw non-zero values.
 3. For each flagged period, assign a cause in this order:
@@ -123,7 +123,7 @@ Source: SUPPLY_CHAIN_GOLD_STANDARD.md (rules inlined below). Labels: [STD] = aut
    - single-order share > 50% of period qty, if order lines are available → `BULK_ONE_OFF` (replace) [RoT]
    - data-error evidence (UoM ×10/×12/×100 pattern, duplicate load) → `DATA_ERROR` (replace)
    - otherwise → `UNEXPLAINED` (keep, flag for planner review; do **not** auto-replace) [decision: conservative]
-4. Replacement value = robust trend + seasonal profile at $t$ (or the median of non-zero sizes for intermittent series), floored at 0.
+4. Replacement value = robust trend + seasonal profile at $\mathit{t}$ (or the median of non-zero sizes for intermittent series), floored at 0.
 
 **Step 8: Lineage and reconciliation (GS-D-13, GS-G-11).**
 - Write one lineage row per changed cell.

@@ -33,15 +33,15 @@ metadata:
 | **GS-K-01** WAPE | $\sum\lvert A-F\rvert/\sum\lvert A\rvert\times100$ on unconstrained actuals. |
 | **GS-K-04** MASE | Per series, scale $=\frac{1}{T-m}\sum\lvert y_t-y_{t-m}\rvert$ on pre-origin history. Per-series FVA in MASE units handles scale differences. |
 | **GS-K-05** Bias | $\text{Bias\%}=\sum(F-A)/\sum A\times100$ (+ = over). FVA reports include bias change per step, because overrides often add optimism bias. |
-| **GS-M-01 / GS-M-02** | The decision lag is stated. Naïve forecasts are generated at the same lag (NF1 at lag ℓ uses $y_{t-\ell}$). |
+| **GS-M-01 / GS-M-02** | The decision lag is stated. Naïve forecasts are generated at the same lag (NF1 at lag ℓ uses $\mathit{y}_{t-\ell}$). |
 | **GS-G-01** Override evidence & policy [EVID + RoT] | Fildes, Goodwin, Lawrence & Nikolopoulos (2009), > 60,000 forecasts: **small adjustments** often damage accuracy, **larger adjustments** tend to improve it, and **positive (upward) adjustments** are less likely to help and show optimism bias. Policy: every override needs a **reason code** + rationale + owner + timestamp. **Materiality:** overrides with $\lvert\Delta\rvert<\max(0.10\cdot F_{\text{stat}},\ 1\cdot\text{MAD}_{\text{stat}})$ are blocked unless they correct a data error. **Upward overrides > 20%** need secondary approval [RoT]. This skill **audits** compliance. |
 | **GS-G-02** Retention rule [RoT] | Track FVA by participant × reason code × direction × size bucket every cycle. A touchpoint with **negative FVA over a rolling ≥ 6 cycles**, with either a significant result (p < 0.05, or a bootstrap 95% CI entirely < 0) **or** the same sign in ≥ 5 of 6 cycles, is **suspended** for that segment; the prior step's forecast is used instead. If the statistical forecast does not beat naïve, the segment goes to model review, and naïve may be used until it is fixed. |
 | **GS-K-13** | Report the level, N items, N periods, % reconstructed actuals. Aggregate FVA and decision-level FVA are reported separately. |
 | **GS-G-03 / 10 / 11** | Exceptions, the standard output contract, and reproducible seeded tests. |
 
-**Size buckets** (relative override size $r=\lvert F_{\text{adj}}-F_{\text{prior}}\rvert/F_{\text{prior}}$):
-- Q1–Q4 quartiles of $r$ within the run, and fixed bands {< 5%, 5–10%, 10–20%, 20–50%, > 50%} [RoT].
-- Direction: UP if $F_{\text{adj}}>F_{\text{prior}}$, DOWN if lower, NONE if equal.
+**Size buckets** (relative override size $\mathit{r}=\lvert F_{\text{adj}}-F_{\text{prior}}\rvert/F_{\text{prior}}$):
+- Q1–Q4 quartiles of $\mathit{r}$ within the run, and fixed bands {< 5%, 5–10%, 10–20%, 20–50%, > 50%} [RoT].
+- Direction: UP if $\mathit{F}_{\text{adj}}>F_{\text{prior}}$, DOWN if lower, NONE if equal.
 
 **Directional hit rate:** an override is "right direction" if $\operatorname{sign}(F_{\text{adj}}-F_{\text{prior}})=\operatorname{sign}(A-F_{\text{prior}})$. Report it by direction.
 
@@ -56,7 +56,7 @@ metadata:
 | `override_id` | string | Y | |
 | `item_id`, `location_id` (or `node_id` + `level`) | string | Y | Aggregate-level overrides are disaggregated per `nextq-consensus-demand-review` before scoring |
 | `target_period`, `created_period` | date | Y | |
-| `step` | enum | Y | ANALYST / SALES / MARKETING / CONSENSUS / EXEC |
+| `step` | enum | Y | ANALYST / SALES / MARKETING / CONSENSUS / EXECUTIVE |
 | `owner_id` | string | Y | Participant |
 | `reason_code` | enum | Y | PROMO, CUSTOMER_INTEL, NEW_LISTING, LOST_LISTING, SUPPLY_EVENT, PRICE_CHANGE, DATA_ERROR, MARKET_TREND, OTHER |
 | `rationale` | text | Y | |
@@ -74,12 +74,12 @@ metadata:
 ## 4. Execution Workflow
 1. **Assemble the stair-step panel.** For each (item, location, target_period) at the decision lag, pivot the versions into columns. Generate NF1/NF2 if absent (NF2 for SEASONAL items, else NF1). Missing steps carry forward the prior step's value (no touch means FVA = 0) and are marked `UNTOUCHED`.
 2. **Align scope.** Keep only rows that have actuals and every step being compared (`ITEMSET_ALIGNED`). Exclude structural periods.
-3. **Step-level FVA.** For each step $s$, compute WAPE$_s$ and Bias$_s$ on the aligned panel. Then compute FVA vs. prior $=\text{WAPE}_{s-1}-\text{WAPE}_s$ and FVA vs. naïve $=\text{WAPE}_{\text{naïve}}-\text{WAPE}_s$. Also compute per-series MASE FVA (median).
-4. **Touched-only FVA.** Repeat step 3 on **touched** item-periods only (where step $s$ changed the value). Untouched rows dilute the effect. Report both.
+3. **Step-level FVA.** For each step $\mathit{s}$, compute $\text{WAPE}_s$ and $\text{Bias}_s$ on the aligned panel. Then compute FVA vs. prior $=\text{WAPE}_{s-1}-\text{WAPE}_s$ and FVA vs. naïve $=\text{WAPE}_{\text{naïve}}-\text{WAPE}_s$. Also compute per-series MASE FVA (median).
+4. **Touched-only FVA.** Repeat step 3 on **touched** item-periods only (where step $\mathit{s}$ changed the value). Untouched rows dilute the effect. Report both.
 5. **Breakdowns** (touched rows): participant, reason code, direction, size bucket (quartile and fixed band), ABC, promo vs. non-promo, and lag. Per cell, report N, WAPE before/after, FVA, bias change, and directional hit rate.
 6. **Significance.**
-   - Compute the paired per-row absolute-error differential $d=\lvert A-F_{s-1}\rvert-\lvert A-F_s\rvert$.
-   - **Bootstrap over items** (seeded, 2,000 resamples) for the CI of Σd / ΣA × 100 (WAPE FVA). Also run a Wilcoxon signed-rank test on per-item mean $d$ when N ≥ 20.
+   - Compute the paired per-row absolute-error differential $\mathit{d}=\lvert A-F_{s-1}\rvert-\lvert A-F_s\rvert$.
+   - **Bootstrap over items** (seeded, 2,000 resamples) for the CI of Σd / ΣA × 100 (WAPE FVA). Also run a Wilcoxon signed-rank test on per-item mean $\mathit{d}$ when N ≥ 20.
    - Report the CI and p-value. When > 3 breakdown cells are tested, apply Benjamini-Hochberg across cells.
 7. **Compliance audit (GS-G-01):**
    - % of overrides with a valid reason code and rationale.
@@ -88,7 +88,7 @@ metadata:
    - FVA of sub-materiality overrides, which tests the Fildes et al. finding on your data.
 8. **Rolling retention decision (GS-G-02)** per touchpoint × segment over the last ≥ 6 cycles:
    - Compute the per-cycle FVA sign and pooled significance.
-   - Decision: `RETAIN` (FVA ≥ 0 or not significant and mixed signs), `WATCH` (negative but < 6 cycles or not significant), or `SUSPEND` (negative, significant or same sign ≥ 5/6).
+   - Decision over the last 6 cycles: `RETAIN` (mean FVA ≥ 0), `WATCH` (mean FVA < 0 but neither significant nor ≥ 5/6 cycles negative), or `SUSPEND` (mean FVA < 0 and either significant or ≥ 5/6 cycles negative). Fewer than 6 cycles → `INSUFFICIENT_CYCLES`.
    - Also flag `STAT_BELOW_NAIVE` segments → model review.
 9. **Cost of process (optional):** touches × minutes per touch [user input] vs. FVA, giving "value per hour".
 10. **Output** (Section 6). Persist the decision table for `nextq-consensus-demand-review` (which enforces suspensions) and `nextq-demand-exception-management`.
@@ -139,7 +139,7 @@ def retention_decision(cycle_fva: list[float], ci_hi: float, p_value: float | No
     if pooled_neg: return "WATCH"
     return "RETAIN"
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - `A=[100,100,100,100]`, NF1 = `[80,120,90,110]`, STAT = `[95,105,98,102]`, ANALYST = `[100,115,98,110]`.
 - WAPE: NF1 15.0, STAT 3.5, ANALYST 6.75.
 - FVA: STAT vs. naïve +11.5; ANALYST vs. prior −3.25 (value destroyed, Bias +5.75% over); ANALYST vs. naïve +8.25.

@@ -71,12 +71,12 @@ metadata:
 2. **Coverage.**
    - If POS covers less than 100% of shipped volume, scale sell-out by 1/coverage for the uncovered share, flagged `EXTRAPOLATED`.
    - Coverage below 60% → `LOW_COVERAGE`. Bullwhip is not computed.
-3. **Channel balance.** $I_t=I_{t-1}+\text{SellIn}_t-\text{SellOut}_t-\text{Returns}_t$, from the first reported snapshot $I_0$.
+3. **Channel balance.** $\mathit{I}_t=I_{t-1}+\text{SellIn}_t-\text{SellOut}_t-\text{Returns}_t$, from the first reported snapshot $\mathit{I}_0$.
    - Compare with reported inventory when available. A gap above 5% → `RECON_GAP` (shrink, unreported transfers, or a feed issue).
    - Negative computed inventory → `NEGATIVE_COMPUTED_INV` (the data are incomplete). Reported inventory is then authoritative.
 4. **Sell-through** $=\text{SellOut}/(I_{\text{begin}}+\text{SellIn})$ per week.
 5. **WOS.**
-   - Forward WOS = fractional weeks until cumulative $F_{\text{sell out}}$ ≥ inventory. If the inventory outlasts the forecast horizon, report "> H".
+   - Forward WOS = fractional weeks until cumulative $\mathit{F}_{\text{sell out}}$ ≥ inventory. If the inventory outlasts the forecast horizon, report "> H".
    - Backward WOS = inventory / mean of the last 4 weeks of sell-out, labeled.
    - Status from forward WOS vs. target ± 1 week: `CHANNEL_BUILD`, `ON_TARGET` or `CHANNEL_BURN`.
 6. **Transit lag** $\tau$ = the lag in 0–4 weeks that maximizes the correlation of first-differenced sell-in with first-differenced sell-out shifted by $\tau$. Report the correlation; below 0.2, use the contractual lead time and flag `LAG_ASSUMED` [RoT].
@@ -167,7 +167,7 @@ def sell_in_forecast(fcst_sell_out, inv0, target_wos, tau=0, correction_weeks=4)
         out.append(si)
     return np.array(out)
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - **Balance:** I₀ = 100, sell-in [50, 80, 0, 60], sell-out [40, 45, 50, 55] → I = [110, 145, 95, 100]. Reported [110, 146, 90, 95] gives `RECON_GAP` in weeks 3 and 4 (5.3–5.6% > 5%).
 - **Sell-through:** [0.2667, 0.2368].
 - **WOS:**

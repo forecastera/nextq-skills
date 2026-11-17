@@ -47,7 +47,7 @@ metadata:
 
 **Statistics:**
 - **Wilson interval** for each proportion: $\frac{\hat p+\frac{z^2}{2n}\pm z\sqrt{\frac{\hat p(1-\hat p)}{n}+\frac{z^2}{4n^2}}}{1+\frac{z^2}{n}}$, z = 1.96.
-- **Planned vs. actual:** one-sided binomial test $P(X\ge x\mid n,\ 1-\text{CSL}_{target})$. p < 0.05 [RoT] means `BELOW_PLAN`. With n < 20 cycles, report the observation only (`INSUFFICIENT_CYCLES`).
+- **Planned vs. actual:** one-sided binomial test $\mathit{P}(X\ge x\mid n,\ 1-\text{CSL}_{target})$. p < 0.05 [RoT] means `BELOW_PLAN`. With n < 20 cycles, report the observation only (`INSUFFICIENT_CYCLES`).
 
 **Root-cause precedence** (a stockout gets exactly one cause):
 
@@ -177,7 +177,7 @@ if __name__ == "__main__":                                  # self-test: reprodu
     assert value_at_risk(-40, 2.5, "A") == 300.0
     print("self-test passed")
 ```
-**Test vector** (executed by the `__main__` self-test above):
+**Test vector** (verified by the `__main__` self-test above):
 
 | Test | Input | Result |
 |---|---|---|

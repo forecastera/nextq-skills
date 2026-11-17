@@ -39,7 +39,7 @@ metadata:
 | **GS-D-09** Buckets | Capacity (hours or units) and demand on the same fiscal calendar. Compare 4- and 5-week periods on **per-day rates**. Weekly execution plans come from monthly S&OP via `nextq-time-bucket-calendar-alignment`. |
 | **GS-G-08** Allocation hand-off | When the constrained plan cannot meet demand in a period, the shortage is allocated by a **declared rule** (fair-share, priority, margin LP) in `nextq-shortage-allocation-atp`. Allocation never changes the unconstrained forecast. |
 | **GS-G-10** Output contract | Executive summary, KPI table, exceptions with value, recommendations, assumptions log, reproducibility block. |
-| **GS-G-11** Verification | Balance identity $I_t=I_{t-1}+\text{supply}_t-\text{served}_t$ and served + unmet = demand are asserted. Inventory is never negative in the constrained plan (unmet is reported separately). |
+| **GS-G-11** Verification | Balance identity $\mathit{I}_t=I_{t-1}+\text{supply}_t-\text{served}_t$ and served + unmet = demand are asserted. Inventory is never negative in the constrained plan (unmet is reported separately). |
 
 **Balancing parameters [RoT, configurable]:**
 - **Utilization status:** > 100% `OVERLOADED`; 85–100% `WATCH` (little buffer for variability); ≤ 85% `OK`.
@@ -63,11 +63,11 @@ metadata:
 
 ## 4. Execution Workflow
 1. **Align:** demand and capacity on fiscal periods. Convert capacity to hours from trading days × shifts. Use per-day rates when comparing periods of unequal length.
-2. **Rough-cut capacity:** load$_{r,t}=\sum_f \text{qty}_{f,t}\times\text{hours/unit}_{f,r}$, utilization = load / available hours, then status.
+2. **Rough-cut capacity:** $\text{load}_{r,t}=\sum_f \text{qty}_{f,t}\times\text{hours/unit}_{f,r}$, utilization = load / available hours, then status.
 3. **Unconstrained projection:**
-   - $I_t=I_{t-1}+\text{planned supply}_t-\text{demand}_t$.
-   - gap$_t=I_t-\text{target}_t$.
-   - Periods with gap < 0 are shortage periods (`BELOW_TARGET`); negative $I$ is `STOCKOUT_PROJECTED`.
+   - $\mathit{I}_t=I_{t-1}+\text{planned supply}_t-\text{demand}_t$.
+   - $\text{gap}_t=I_t-\text{target}_t$.
+   - Periods with gap < 0 are shortage periods (`BELOW_TARGET`); negative $\mathit{I}$ is `STOCKOUT_PROJECTED`.
 4. **Constrained plan (base):**
    - Convert capacity to units for each family (or run per resource for single-family resources).
    - Build to demand up to capacity, then consume opening stock, then pre-build per the rule.
@@ -83,7 +83,7 @@ metadata:
    | (e) demand shaping (decision with expected effect; owner RGM / sales) | slushy, liquid |
    | (f) accept the gap (revenue at risk) | all |
 
-   Cost each option: incremental cost vs. revenue protected (units × net price − variable cost).
+   Cost each option: incremental cost vs. margin protected (units × net price − variable cost).
 6. **Scenarios:** re-run steps 2–5 for upside, downside and supply-risk. Report unmet units, revenue at risk, average inventory value and utilization per scenario.
 7. **Recommend:**
    - Rank options by net value (protected margin − cost) per period, within zone rules.
@@ -166,7 +166,7 @@ if __name__ == "__main__":                                  # self-test: reprodu
     assert np.allclose(per_day_rate([2800, 3500], [28, 35]), [100, 100]) and in_frozen(1, 2) and not in_frozen(3, 2)
     print("self-test passed")
 ```
-**Test vector** (executed by the `__main__` self-test above):
+**Test vector** (verified by the `__main__` self-test above):
 - **RCCP:** units [1000, 1200, 900] at 0.5 h/unit against [560, 560, 700] hours → utilization [0.893, 1.071, 0.643] = WATCH / **OVERLOADED** / OK.
 - **Projection:** I₀ = 100, supply 500/period, demand [400, 700, 450], target 150 → I = [200, 0, 50], gap [+50, −150, −100].
 - **Pre-build:** demand [400, 500, 900, 700], capacity 600/period.

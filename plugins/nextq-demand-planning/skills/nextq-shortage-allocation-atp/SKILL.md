@@ -42,12 +42,12 @@ metadata:
 | **GS-G-03** Exceptions | Customers below their SLA floor or contractual minimum are ranked by value at risk × ABC weight (3/2/1). Top N shown. |
 
 **Allocation formulas:**
-- **Fair share:** $x_i=\min\big(d_i,\ \lambda w_i d_i\big)$, with λ set so that $\sum x_i=\min(S,\sum d_i)$ (cap-and-redistribute). Optional floors $f_i$ (contract minimums) are served first. Weights $w_i$ default to 1 (proportional to demand). Integerized by largest remainder (ties go to the lower index, a documented deterministic rule).
+- **Fair share:** $\mathit{x}_i=\min\big(d_i,\ \lambda w_i d_i\big)$, with λ set so that $\sum x_i=\min(S,\sum d_i)$ (cap-and-redistribute). Optional floors $\mathit{f}_i$ (contract minimums) are served first. Weights $\mathit{w}_i$ default to 1 (proportional to demand). Integerized by largest remainder (ties go to the lower index, a documented deterministic rule).
 - **Priority tiers:** tier 1 fully, then tier 2, …; fair share within the tier that runs short.
 - **Margin LP:** $\max\sum_i m_i x_i$ s.t. $\sum_i x_i\le S$, $\ \phi d_i\le x_i\le d_i$. Protection floor φ = 0.5 [RoT]; if $\phi\sum d_i>S$, the LP is infeasible and φ must be lowered and logged.
 - **Cumulative ATP (look-ahead):** $\mathit{CATP}_t=\max\big(0,\ \min_{u\ge t}[\text{CumSupply}_u-\text{CumCommitted}_u]\big)$, where supply includes on-hand in period 1.
-  - Discrete ATP: $\mathit{ATP}_t=CATP_t-CATP_{t-1}$.
-  - A new order of q units for period t is promisable iff $q\le CATP_t$. Otherwise offer the earliest t′ with $\mathit{CATP}_{t'}\ge q$, or a partial quantity now.
+  - Discrete ATP: $\mathit{ATP}_t=\mathit{CATP}_t-\mathit{CATP}_{t-1}$.
+  - A new order of q units for period t is promisable iff $\mathit{q}\le \mathit{CATP}_t$. Otherwise offer the earliest t′ with $\mathit{CATP}_{t'}\ge q$, or a partial quantity now.
 - **Allocated ATP:** $\mathit{CATP}_t$ split by channel or customer shares from the declared rule (integer largest remainder). Unused allocations are released back to the pool at a declared time, e.g. 1 period before the frozen fence [RoT].
 
 **Rule choice guidance** (declare in the S&OP or MBR, not per order):
@@ -74,15 +74,17 @@ Always show all three side by side before the decision.
 **Grain:** item × location × period (allocation); order line (promising and OTIF).
 
 ## 4. Execution Workflow
+All allocations, ATP quantities and promise dates are **proposals returned to the user**. Never commit, send or write them to an order or ERP system without the user's explicit confirmation.
+
 1. **Detect shortage:** for each item × location × period, compare supply available ($\mathit{CATP}$) with open demand + forecast. Shortage when Σ demand > supply. If none, promise normally (step 6).
 2. **Declare the rule:** read `rule_config` (approved in S&OP/MBR). If missing, compute all three and stop for a decision (`RULE_NOT_DECLARED`). Never allocate silently.
 3. **Allocate:** run fair share, priority and margin LP. Verify each with `verify_allocation` (GS-G-11).
 4. **Score:**
-   - Per rule: allocated units, margin, projected unit fill rate (Σx/Σd), projected OTIF (an order is in full only if $x_i\ge d_i$, and on time per window and date basis), and customers below their SLA or contract floor.
+   - Per rule: allocated units, margin, projected unit fill rate (Σx/Σd), projected OTIF (an order is in full only if $\mathit{x}_i\ge d_i$, and on time per window and date basis), and customers below their SLA or contract floor.
    - Present a side-by-side table and recommend per the declared rule.
 5. **Publish allocations** as allocated ATP by customer or channel and period; set the release time for unused allocation.
 6. **Promise:**
-   - For each new order: if $q\le$ the customer's allocated ATP (or $\mathit{CATP}_t$ when unallocated), promise the requested date.
+   - For each new order: if $\mathit{q}\le$ the customer's allocated ATP (or $\mathit{CATP}_t$ when unallocated), promise the requested date.
    - Otherwise offer (a) the earliest full date, (b) a partial now plus the balance at the earliest date, or (c) substitution, recorded as a decision.
    - Keep the requested date for OTIF and the reconstruction skill.
 7. **Record demand integrity:** requested quantities and dates stay in history, flagged with `ALLOCATED` (input to `nextq-unconstrained-demand-reconstruction`, GS-M-11). The unconstrained forecast is unchanged (assert the version hash equals the input).
@@ -188,7 +190,7 @@ if __name__ == "__main__":                                  # self-test: reprodu
     ps = projected_service(x, d, [0, 0, 1, 0], [0, 0, 0, 0]); assert abs(ps["fill_rate"] - 0.7) < 1e-12 and ps["otif"] == 0.0
     print("self-test passed")
 ```
-**Test vector** (executed by the `__main__` self-test above): supply 700 against demand [500, 300, 150, 50] (Σ 1,000).
+**Test vector** (verified by the `__main__` self-test above): supply 700 against demand [500, 300, 150, 50] (Σ 1,000).
 
 **Allocation rules:**
 

@@ -33,10 +33,10 @@ metadata:
 | **GS-G-02** FVA retention | Apply the current `nextq-forecast-value-added-analysis` decisions. A touchpoint × segment marked **SUSPEND** cannot override in that segment: the submission is auto-rejected with code `FVA_SUSPENDED`. **WATCH** submissions need demand-manager approval. |
 | **GS-G-04** Time fences [RoT, configurable] | **Frozen** (≤ cumulative lead time, e.g. 0–4 weeks): changes only by exception approval (S&OP leader); default reject. **Slushy** (e.g. 5–12 weeks): reason code + materiality + approval rules. **Liquid** (> 12 weeks): open, subject to the rules. Every consensus version is snapshotted at each lag for FVA. |
 | **GS-G-05** Constrained vs. unconstrained | Keep three plans separate and labeled: **unconstrained consensus demand** (this skill), the constrained supply / sales plan, and the financial plan. Accuracy is measured on unconstrained demand. Gaps are S&OP decisions. A SUPPLY_EVENT reason may model **demand** effects (for example, a competitor stockout); it may never reduce demand for **our** constraint. |
-| **GS-D-07** Coherence | Disaggregate a parent override $O_P$ to its children with the **base-forecast proportions** $c_{\text{new}}=c_{\text{base}}\cdot O_P/\sum c_{\text{base}}$. If $\sum c_{\text{base}}=0$, use average historical proportions $p_j=\frac1T\sum y_{j,t}/y_t$; if those are also 0, use an equal split. Locked child overrides are honored first: the parent remainder is spread over unlocked children. Final coherence: $\lvert\text{parent}-\sum\text{children}\rvert\le10^{-6}$ relative. |
+| **GS-D-07** Coherence | Disaggregate a parent override $\mathit{O}_P$ to its children with the **base-forecast proportions** $\mathit{c}_{\text{new}}=c_{\text{base}}\cdot O_P/\sum c_{\text{base}}$. If $\sum c_{\text{base}}=0$, use average historical proportions $\mathit{p}_j=\frac1T\sum y_{j,t}/y_t$; if those are also 0, use an equal split. Locked child overrides are honored first: the parent remainder is spread over unlocked children. Final coherence: $\lvert\text{parent}-\sum\text{children}\rvert\le10^{-6}$ relative. |
 | **GS-K-05** Bias | Show each participant's trailing Bias% $=\sum(F-A)/\sum A$ (+ = over) next to their submission, so the meeting sees their track record. |
 | **GS-K-07** FVA hook | Store versions STAT → ANALYST → SALES/MARKETING → CONSENSUS → FINAL with creation dates. |
-| **GS-G-06** Value view (handoff) | Value $V=\sum_i Q_i\times P_i^{\text{net}}$, where net price = list − trade/discounts. Gap to the financial plan $V_{\text{demand}}-V_{\text{fin}}$ is reported, and > 2% at the reconciliation level escalates [RoT]. The volume plan is **never plugged** to hit the financial number (full reconciliation: `nextq-demand-financial-reconciliation`). |
+| **GS-G-06** Value view (handoff) | Value $\mathit{V}=\sum_i Q_i\times P_i^{\text{net}}$, where net price = list − trade/discounts. Gap to the financial plan $\mathit{V}_{\text{demand}}-V_{\text{fin}}$ is reported, and > 2% at the reconciliation level escalates [RoT]. The volume plan is **never plugged** to hit the financial number (full reconciliation: `nextq-demand-financial-reconciliation`). |
 | **GS-G-03** Exceptions | Consensus change vs. last cycle > ±25% within the frozen/slushy zone [RoT]; consensus deviates from base by > 30% with no approved evidence; participant Bias% > +10% submitting UP overrides; incoherence after edits. |
 | **GS-G-10 / 11** | Standard output; reproducible override application. |
 
@@ -49,7 +49,7 @@ metadata:
 | Column | Type | Req. | Notes |
 |---|---|---|---|
 | `submission_id` | string | Y | |
-| `owner_id`, `step` | string, enum (ANALYST/SALES/MARKETING/EXEC) | Y | |
+| `owner_id`, `step` | string, enum (ANALYST/SALES/MARKETING/EXECUTIVE) | Y | |
 | `node_id`, `level` | string | Y | Declared override level |
 | `period` (or `period_from`/`period_to`) | date | Y | |
 | `override_type` | enum | Y | ABSOLUTE (new qty), DELTA_QTY, DELTA_PCT |
@@ -74,7 +74,7 @@ metadata:
 
 ## 4. Execution Workflow
 1. **Freeze inputs.** Snapshot `base_plan` as the `STAT/REC` version, and record the cut-off timestamp.
-2. **Normalize submissions** to an absolute target $O$ at the declared node and period: ABSOLUTE → value; DELTA_QTY → base + value; DELTA_PCT → base × (1 + value). Compute $\Delta=O-F_{\text{base}}$ and $r=\Delta/F_{\text{base}}$.
+2. **Normalize submissions** to an absolute target $\mathit{O}$ at the declared node and period: ABSOLUTE → value; DELTA_QTY → base + value; DELTA_PCT → base × (1 + value). Compute $\Delta=O-F_{\text{base}}$ and $\mathit{r}=\Delta/F_{\text{base}}$.
 3. **Validate each submission** in this order (first failure wins) and record the status:
    1. `LATE` (after cut-off) → reject.
    2. Missing reason code or rationale → reject `NO_REASON`.
@@ -85,12 +85,12 @@ metadata:
    7. **UP > 20%**: requires `evidence_link` and approval → `PENDING_APPROVAL` until approved.
    8. FVA `WATCH` → `PENDING_APPROVAL`.
    9. Otherwise → `ACCEPTED`.
-4. **Resolve conflicts.** For multiple accepted submissions on the same node-period, apply them in step order ANALYST → SALES/MARKETING → EXEC. A later step overrides an earlier one, with both logged. Submissions on parent and child for the same period: the child is locked first, then the parent remainder is applied to unlocked children.
-5. **Disaggregate (GS-D-07)** each accepted parent override with the proportional rule and its fallbacks, honoring locks. If the locked children sum exceeds $O_P$, reject the parent override as `LOCK_CONFLICT` and escalate.
+4. **Resolve conflicts.** For multiple accepted submissions on the same node-period, apply them in step order ANALYST → SALES/MARKETING → EXECUTIVE. A later step overrides an earlier one, with both logged. Submissions on parent and child for the same period: the child is locked first, then the parent remainder is applied to unlocked children.
+5. **Disaggregate (GS-D-07)** each accepted parent override with the proportional rule and its fallbacks, honoring locks. If the locked children sum exceeds $\mathit{O}_P$, reject the parent override as `LOCK_CONFLICT` and escalate.
 6. **Build the consensus** at the bottom grain, then re-aggregate bottom-up. **Verify coherence** (tolerance $10^{-6}$).
 7. **Waterfall vs. last cycle** per node-period: last consensus → base change (model/actuals) → accepted overrides by reason code → consensus. The bridge must sum exactly.
 8. **Exceptions and risk register:** apply the GS-G-03 triggers. List the upside/downside scenarios submitted (not applied) with probability and impact.
-9. **Value view:** $V=\sum Q\times P^{\text{net}}$ by family-region-month, with the gap to the financial plan. Flag > 2% for the management business review (no plugging).
+9. **Value view:** $\mathit{V}=\sum Q\times P^{\text{net}}$ by family-region-month, with the gap to the financial plan. Flag > 2% for the management business review (no plugging).
 10. **Publish** `CONSENSUS_<cycle>` snapshot (+ `FINAL` after approvals close), the decisions log, and the pack (Section 6). Hand off to `nextq-supply-demand-balancing` and `nextq-demand-financial-reconciliation`.
 
 ## 5. Verification Snippets
@@ -133,7 +133,7 @@ def waterfall(last, base_now, consensus, overrides_by_reason: dict):
     assert abs(last + (base_now - last) + sum(overrides_by_reason.values()) - consensus) < 1e-6, "bridge does not close"
     return steps
 ```
-**Test vectors** (executed):
+**Test vectors** (verified):
 - base = 100, MAD = 8: DELTA_PCT +0.05 → `IMMATERIAL`; +0.15 → `ACCEPTED`; +0.30 without evidence → `PENDING_APPROVAL`.
 - `disaggregate(120, children=[60,30,10])` → [72, 36, 12].
 - With child A locked at 50 → A = 50, and the remaining 70 split 52.5/17.5.
@@ -198,7 +198,7 @@ WHERE status='ACCEPTED' AND (reason_code IS NULL OR rationale IS NULL OR (pct_ch
 1. …
 
 ## Data-Quality / Assumptions Log
-| assumption / issue | source | treatment |
+| assumption / issue | origin | treatment |
 |---|---|---|
 
 ## Reproducibility

@@ -26,7 +26,7 @@ metadata:
 
 **Objective:**
 - Per SKU-location: forward days of supply, turns at cost, health status, excess and dead-stock units and value, expiry at risk, aging profile.
-- A ranked action list (rebalancing transfers and dispositions) with value at risk and owners.
+- A ranked action list (rebalancing transfers and dispositions) with value at risk and owners. These are recommendations only; no orders, transfers or ERP changes are made.
 - A reconciled inventory value consistent with finance.
 
 ## 2. Gold Standard Rules Enforced
@@ -178,7 +178,7 @@ if __name__ == "__main__":                                  # self-test: reprodu
     assert value_at_risk(400, 7.5, "B") == 6000.0 and DISPOSITION_ORDER[0] == "CANCEL_OR_PUSH_OUT_PO"
     print("self-test passed")
 ```
-**Test vector** (executed by the `__main__` self-test above):
+**Test vector** (verified by the `__main__` self-test above):
 - **Forward DOS:** stock 250 against forecast 10/day × 10 days then 30/day → **15.0** days. A flat average over 40 days (25/day) would give 10, which shows why the forward form matters. Stock 5,000 → horizon exceeded (flag).
 - **Turns:** COGS 1.2M against a 13-point average inventory of 300k at cost → **4.0** turns, **91.25** days of inventory.
 - **TSB (α = β = 0.1):** 30 zeros, one 5, 20 zeros → 0.061/period (decayed). An active alternating series → 1.347.

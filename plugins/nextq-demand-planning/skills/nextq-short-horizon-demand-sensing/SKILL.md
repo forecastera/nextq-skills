@@ -32,10 +32,10 @@ metadata:
 | Rule | Inlined standard |
 |---|---|
 | **GS-D-11** Signal hierarchy | Prefer the signal closest to the consumer: **POS / sell-out → customer orders (requested date) → shipments / sell-in**. Shipments are a constrained proxy and are never used as demand when orders exist. Track the sell-in vs. sell-out gap (channel inventory) via `nextq-pos-sell-through-channel-analysis`. |
-| **GS-M-09** ML / leakage controls | Time-ordered rolling-origin validation only (no random K-fold). Features must be known at forecast time $t-\ell$: POS is usable only after feed latency (default 1 day). Future promo and price only if planned and locked. Must beat the baseline on the primary metric (FVA ≥ 0). Loss aligned to decision (Poisson/Tweedie for counts). |
-| **GS-M-15** Combination | Combining forecasts is robust. The blend $F=w_\ell F_{\text{sense}}+(1-w_\ell)F_{\text{base}}$ has weights chosen per lag $\ell$ on a grid {0, 0.25, 0.5, 0.75, 1}. Coarse grids avoid overfitting. Ties go to the **smaller** weight (less change). |
+| **GS-M-09** ML / leakage controls | Time-ordered rolling-origin validation only (no random K-fold). Features must be known at forecast time $\mathit{t}-\ell$: POS is usable only after feed latency (default 1 day). Future promo and price only if planned and locked. Must beat the baseline on the primary metric (FVA ≥ 0). Loss aligned to decision (Poisson/Tweedie for counts). |
+| **GS-M-15** Combination | Combining forecasts is robust. The blend $\mathit{F}=w_\ell F_{\text{sense}}+(1-w_\ell)F_{\text{base}}$ has weights chosen per lag $\ell$ on a grid {0, 0.25, 0.5, 0.75, 1}. Coarse grids avoid overfitting. Ties go to the **smaller** weight (less change). |
 | **GS-M-16** Backtesting | Rolling origin, daily or weekly origins, ≥ 8 weeks of origins [RoT]. Score each lag separately, using only data available at each origin. |
-| **GS-K-07** FVA by lag | $\text{FVA}_\ell=\text{WAPE}_\ell(\text{baseline})-\text{WAPE}_\ell(\text{blend})$, same items, same lag, same window. If $\text{FVA}_\ell\le0$ → $w_\ell=0$ (sensing switched off for that lag and segment). WAPE $=\sum\lvert A-F\rvert/\sum A$. |
+| **GS-K-07** FVA by lag | $\text{FVA}_\ell=\text{WAPE}_\ell(\text{baseline})-\text{WAPE}_\ell(\text{blend})$, same items, same lag, same window. If $\text{FVA}_\ell\le0$ → $\mathit{w}_\ell=0$ (sensing switched off for that lag and segment). WAPE $=\sum\lvert A-F\rvert/\sum A$. |
 | **GS-G-04** Time fences | Sensed values are an **execution** forecast. Within the frozen zone they feed deployment and replenishment (not the consensus plan). Changes > ±25% vs. consensus inside the frozen zone are raised as exceptions (`FROZEN_SWING`) for approval. The consensus is never overwritten. Every SENSED version is snapshotted by lag. |
 | **GS-M-11** Censoring | Days with in-stock < 95% are excluded from ratio calculation (or reconstructed by `nextq-unconstrained-demand-reconstruction`). Stockout-truncated POS would bias the sensed ratio downward. |
 | **GS-D-04 / GS-D-09** | Daily outliers: 3×IQR on the remainder after removing the baseline × DOW profile (bulk buys are explained, not ratioed). Daily → fiscal week aggregation uses the calendar table with an explicit week-ending day. |
@@ -43,9 +43,9 @@ metadata:
 
 **Sensing parameters [RoT, configurable]:**
 - Look-back for the ratio: 7 clean days (14 for slow movers).
-- Shrinkage $r_s=1+(r-1)\frac{n}{n+n_0}$ with $n_0=7$ days. Clip $r_s\in[0.5,2.0]$.
-- Noise gate: adjust only if $\lvert r-1\rvert>z\sqrt{\sum B}/\sum B$, with $z=1.64$ (Poisson approximation of the relative noise of a sum).
-- Order-book pickup is used only if $c(h)\ge0.30$, capped at 3× booked.
+- Shrinkage $\mathit{r}_s=1+(r-1)\frac{n}{n+n_0}$ with $\mathit{n}_0=7$ days. Clip $\mathit{r}_s\in[0.5,2.0]$.
+- Noise gate: adjust only if $\lvert r-1\rvert>z\sqrt{\sum B}/\sum B$, with $\mathit{z}=1.64$ (Poisson approximation of the relative noise of a sum).
+- Order-book pickup is used only if $\mathit{c}(h)\ge0.30$, capped at 3× booked.
 - DOW profile from the last 8 full weeks.
 - Horizon N = deployment / replenishment lead time + review period (typically 1–4 weeks). Sensing beyond the point where FVA turns 0 is not used.
 
@@ -60,32 +60,32 @@ metadata:
 | `fiscal_calendar` | `date, fiscal_week, week_ending_day` | day |
 | `time_fences` | `item/segment, frozen_days, slushy_days` | |
 
-**Minimum:** 8 weeks of daily clean POS for the DOW profile; ≥ 8 weeks of stored baseline versions by lag for the backtest. A segment without a backtest runs with $w_\ell=0$ (baseline only).
+**Minimum:** 8 weeks of daily clean POS for the DOW profile; ≥ 8 weeks of stored baseline versions by lag for the backtest. A segment without a backtest runs with $\mathit{w}_\ell=0$ (baseline only).
 
 ## 4. Execution Workflow
 1. **As-of snapshot:**
-   - Forecast time $t_0$. Keep POS days with date ≤ $t_0$ − latency (1 day default) and orders booked ≤ $t_0$.
+   - Forecast time $\mathit{t}_0$. Keep POS days with date ≤ $\mathit{t}_0$ − latency (1 day default) and orders booked ≤ $\mathit{t}_0$.
    - Partially loaded days (load_ts after cut-off, or volume < 50% of the DOW-expected volume with no closure event [RoT]) are excluded and flagged `PARTIAL_DAY`.
 2. **Clean the recent window:**
    - Drop days with in-stock < 95% (or use reconstructed demand).
-   - Detect daily outliers (3×IQR on $A_d - B_d$). Explained bulk orders are excluded from the ratio and logged.
-3. **Baseline at daily grain:** $B_d=F^{\text{week}}_{\text{base}}\cdot\text{DOW}_d/7$ (DOW mean = 1), using the **promo baseline** when a promotion is active or planned in the window.
+   - Detect daily outliers (3×IQR on $\mathit{A}_d - B_d$). Explained bulk orders are excluded from the ratio and logged.
+3. **Baseline at daily grain:** $\mathit{B}_d=F^{\text{week}}_{\text{base}}\cdot\text{DOW}_d/7$ (DOW mean = 1), using the **promo baseline** when a promotion is active or planned in the window.
 4. **POS ratio sensing:**
-   - $r=\sum A_d/\sum B_d$ over the clean look-back days.
+   - $\mathit{r}=\sum A_d/\sum B_d$ over the clean look-back days.
    - Apply the noise gate, then shrinkage and clipping (Section 2 parameters).
-   - $F_{\text{sense},d}=B_d\cdot r_s$ for future days. The ratio applies to the level only; DOW and seasonality come from the baseline.
+   - $\mathit{F}_{\text{sense},d}=B_d\cdot r_s$ for future days. The ratio applies to the level only; DOW and seasonality come from the baseline.
 5. **Order-book sensing (B2B):**
-   - $F_{\text{orders}}(h)=\text{booked}(h)/c(h)$ when $c(h)\ge0.30$ (cap 3× booked).
-   - Where both POS and orders exist, $F_{\text{sense}}$ = the method with the better backtest WAPE at that lag (not averaged unless the backtest shows a gain).
+   - $\mathit{F}_{\text{orders}}(h)=\text{booked}(h)/c(h)$ when $\mathit{c}(h)\ge0.30$ (cap 3× booked).
+   - Where both POS and orders exist, $\mathit{F}_{\text{sense}}$ = the method with the better backtest WAPE at that lag (not averaged unless the backtest shows a gain).
 6. **Backtest and weights:**
    - Replay steps 1–5 at each historical origin (≥ 8 weeks) using stored baseline versions.
-   - Choose $w_\ell$ per lag and segment by minimum WAPE on the grid. If FVA ≤ 0, set $w_\ell=0$.
-7. **Blend:** $F_{\text{final},\ell}=w_\ell F_{\text{sense}}+(1-w_\ell)F_{\text{base}}$. Aggregate days to fiscal weeks via the calendar.
+   - Choose $\mathit{w}_\ell$ per lag and segment by minimum WAPE on the grid. If FVA ≤ 0, set $\mathit{w}_\ell=0$.
+7. **Blend:** $\mathit{F}_{\text{final},\ell}=w_\ell F_{\text{sense}}+(1-w_\ell)F_{\text{base}}$. Aggregate days to fiscal weeks via the calendar.
 8. **Time-fence routing:**
-   - Inside the frozen zone, publish to execution (deployment / replenishment). If $\lvert F_{\text{final}}/F_{\text{consensus}}-1\rvert>25\%$, raise `FROZEN_SWING` to `nextq-demand-exception-management`.
+   - Inside the frozen zone, prepare the execution forecast for deployment / replenishment, for the user to load after review. If $\lvert F_{\text{final}}/F_{\text{consensus}}-1\rvert>25\%$, raise `FROZEN_SWING` to `nextq-demand-exception-management`.
    - Slushy / liquid zones: submit as a SENSING input to the next `nextq-consensus-demand-review` with evidence.
 9. **Probabilistic band:**
-   - Scale baseline quantiles by $r_s$ (level shift) for P10/P90.
+   - Scale baseline quantiles by $\mathit{r}_s$ (level shift) for P10/P90.
    - Report coverage of last cycle's sensed intervals (GS-K-14, flag if off by > 5 pp).
 10. **Output** (Section 6).
 
@@ -143,7 +143,7 @@ def asof_filter(pos, forecast_time, latency_days=1):
     """Leakage guard (GS-M-09/M-16): only POS days fully available at forecast time."""
     return pos[pos.index <= (forecast_time - pd.Timedelta(days=latency_days)).normalize()]
 ```
-**Test vector** (executed, seed 7):
+**Test vector** (verified, seed 7):
 - **DOW profile:** 8 weeks of Poisson POS (mean 100 × [0.8, 0.9, 1.0, 1.0, 1.1, 1.3, 0.9]) → index [0.831, 0.893, 1.033, 1.009, 1.093, 1.245, 0.897].
 - **Ratio sensing:**
   - 7 days at 130 vs. 100 → r = 1.30, shrunk to **1.15** (ADJUSTED).
@@ -174,7 +174,7 @@ WITH lb AS (
   JOIN baseline_versions b ON b.item_id = p.item_id AND b.location_id = p.location_id
                           AND b.fiscal_week = (SELECT fiscal_week FROM fiscal_calendar c WHERE c.date = p.date)
                           AND b.created_ts <= :asof
-  WHERE p.date BETWEEN :asof_date - 8 AND :asof_date - 1          -- 1-day latency
+  WHERE p.date BETWEEN :asof_date - 7 AND :asof_date - 1          -- 1-day latency
     AND p.in_stock_pct >= 0.95 AND p.load_ts <= :asof)
 SELECT item_id, location_id, COUNT(*) AS n_days, SUM(units) / NULLIF(SUM(b_day),0) AS raw_ratio
 FROM lb GROUP BY 1,2;
@@ -224,10 +224,10 @@ As-of timestamp, latency, look-back, n0, clip, z, grid, backtest origins, baseli
 
 ## 7. Edge Cases
 - **Promotion in the look-back or horizon:** ratio against the **promo-adjusted** baseline. A promo spike against a plain baseline would wrongly raise the level for post-promo days (where a dip is expected).
-- **Moving holiday or calendar shift** (Easter, Thanksgiving week): the DOW profile excludes holiday weeks. The baseline must carry the event dummy; otherwise flag `CALENDAR_EVENT_UNMODELED` and freeze $r_s=1$ for those days.
-- **Stockouts in the look-back** reducing clean days below 4: use reconstruction output or fall back to $w=0$ (`INSUFFICIENT_CLEAN_DAYS`).
+- **Moving holiday or calendar shift** (Easter, Thanksgiving week): the DOW profile excludes holiday weeks. The baseline must carry the event dummy; otherwise flag `CALENDAR_EVENT_UNMODELED` and freeze $\mathit{r}_s=1$ for those days.
+- **Stockouts in the look-back** reducing clean days below 4: use reconstruction output or fall back to $\mathit{w}=0$ (`INSUFFICIENT_CLEAN_DAYS`).
 - **New items** (no baseline): sensing does not apply; use early-read re-scaling in `nextq-new-product-lifecycle-forecasting`.
-- **Intermittent items** (ADI > 1.32): the ratio method is unstable. Use weekly look-back of 4+ weeks and $n_0=28$, or turn sensing off unless the backtest shows FVA > 0.
+- **Intermittent items** (ADI > 1.32): the ratio method is unstable. Use weekly look-back of 4+ weeks and $\mathit{n}_0=28$, or turn sensing off unless the backtest shows FVA > 0.
 - **Retailer POS shared weekly only:** grain becomes week and look-back 2–4 weeks; the latency guard applies to the share date.
 - **Order cancellations / duplicates in the order book:** net cancellations by booking date and deduplicate by order line ID before pickup.
 - **Feed outage:** if no POS for > 2 days, the last sensed ratio decays to 1 over 7 days [RoT] and the run is flagged `STALE_SIGNAL`.

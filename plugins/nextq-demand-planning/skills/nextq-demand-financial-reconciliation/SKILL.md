@@ -32,8 +32,8 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-G-06** Volume-to-value | $V=\sum_i Q_i\times P_i^{\text{net}}$, where net price = list − trade spend / discounts (here: list − on-invoice discounts − off-invoice trade − rebates, per base unit, on the same gross-to-net basis finance uses). Same currency and same fiscal calendar on both sides. **Gap** $=V_{\text{demand}}-V_{\text{financial}}$ is reported, decomposed by GS-G-07, and resolved in the management business review. **Tolerance [RoT]:** $\lvert\text{gap}\rvert/V_{\text{fin}} > 2\%$ at the reconciliation level → **ESCALATE**. **Never plug** the volume plan. |
-| **GS-G-07** PVM [STD accounting practice] | Plan (0) vs. forecast (1), with $Q$ = total volume and $s_i=Q_i/Q$ the mix share. **Volume** $=(Q_1-Q_0)\bar P_0$ with $\bar P_0=\sum_i s_{i,0}P_{i,0}$. **Mix** $=Q_1\sum_i(s_{i,1}-s_{i,0})P_{i,0}$. **Price** $=\sum_i Q_{i,1}(P_{i,1}-P_{i,0})$. Check: Volume + Mix + Price = $V_1-V_0$ **exactly** (residual asserted ≤ $10^{-9}$ relative). |
+| **GS-G-06** Volume-to-value | $\mathit{V}=\sum_i Q_i\times P_i^{\text{net}}$, where net price = list − trade spend / discounts (here: list − on-invoice discounts − off-invoice trade − rebates, per base unit, on the same gross-to-net basis finance uses). Same currency and same fiscal calendar on both sides. **Gap** $=V_{\text{demand}}-V_{\text{financial}}$ is reported, decomposed by GS-G-07, and resolved in the management business review. **Tolerance [RoT]:** $\lvert\text{gap}\rvert/V_{\text{fin}} > 2\%$ at the reconciliation level → **ESCALATE**. **Never plug** the volume plan. |
+| **GS-G-07** PVM [STD accounting practice] | Plan (0) vs. forecast (1), with $\mathit{Q}$ = total volume and $\mathit{s}_i=Q_i/Q$ the mix share. **Volume** $=(Q_1-Q_0)\bar P_0$ with $\bar P_0=\sum_i s_{i,0}P_{i,0}$. **Mix** $=Q_1\sum_i(s_{i,1}-s_{i,0})P_{i,0}$. **Price** $=\sum_i Q_{i,1}(P_{i,1}-P_{i,0})$. Check: Volume + Mix + Price = $\mathit{V}_1-V_0$ **exactly** (residual asserted ≤ $10^{-9}$ relative). |
 | **GS-G-05** Plans kept separate | Three labeled plans: **unconstrained consensus demand** (from `nextq-consensus-demand-review`), **constrained supply / sales plan** (from `nextq-supply-demand-balancing`), and **financial plan**. Gaps between them are S&OP decisions, never forecast edits. Revenue at risk from supply $=\sum_i (Q^{\text{unc}}_i-Q^{\text{con}}_i)^+P^{\text{net}}_i$. |
 | **GS-D-09** Time buckets | One fiscal calendar table (`date → fiscal_week, fiscal_period, fiscal_quarter, fiscal_year, days_in_period`). Weekly → **calendar** months: split each week by days in each month (optionally day-of-week weighted), never assigned wholesale. Weekly → **4-4-5 fiscal** periods map whole weeks by the calendar table. Compare unequal periods on per-day rates. |
 | **GS-D-10** 4-4-5 / 53-week | Quarters are 13 weeks; a 53rd week is inserted periodically. If finance and demand calendars disagree on week 53, align explicitly (drop, merge, or dummy) and report the effect as a separate `CALENDAR` bridge line. |
@@ -41,7 +41,7 @@ metadata:
 | **GS-G-10 / GS-D-13** | Standard output; every price, FX, or mapping substitution logged (before, after, rule, timestamp). |
 
 **Additional bridge conventions [RoT / practice, documented]:**
-- **New items** (in the forecast, not in the plan) take $P_0:=P_1$, so their price effect is 0 and their value flows through volume and mix. **Discontinued** items (in the plan, not in the forecast) take $P_1:=P_0$. Both are listed in a NEW/DISC sub-table.
+- **New items** (in the forecast, not in the plan) take $\mathit{P}_0:=P_1$, so their price effect is 0 and their value flows through volume and mix. **Discontinued** items (in the plan, not in the forecast) take $\mathit{P}_1:=P_0$. Both are listed in a NEW/DISC sub-table.
 - **FX:** PVM is computed in **constant currency** (plan FX). FX effect $=\sum_i Q_{i,1}P^{\text{local}}_{i,1}(\text{FX}_1-\text{FX}_0)$ is a separate bridge line.
 - **Bridge order:** Plan → Volume → Mix → Price → FX → Calendar → Forecast. The lines must sum exactly.
 
@@ -63,22 +63,22 @@ metadata:
 1. **Align calendars:** convert consensus weeks to the finance period with the calendar table (day-split for calendar months; whole-week mapping for 4-4-5). Assert totals are conserved. Treat week 53 per policy and log it.
 2. **Map the hierarchy:** item → brand, region → finance region. Unmapped volume goes to `UNMAPPED`; if its share of value is > 0.5% [RoT], flag `MAPPING_GAP`.
 3. **Net prices:**
-   - Pick the price valid at each period (validity dates). $P^{\text{net}}=\text{list}-\text{on-invoice}-\text{off-invoice}-\text{rebates}$.
+   - Pick the price valid at each period (validity dates). $\mathit{P}^{\text{net}}=\text{list}-\text{on-invoice}-\text{off-invoice}-\text{rebates}$.
    - Missing price: use the last valid price, flagged `PRICE_CARRIED`. If none, flag `PRICE_MISSING` and exclude from value (show the units).
-   - $P^{\text{net}}\le 0$: flag `NONPOSITIVE_NET_PRICE`.
+   - $\mathit{P}^{\text{net}}\le 0$: flag `NONPOSITIVE_NET_PRICE`.
 4. **Value the plans** in local currency, then convert at plan FX (constant currency) and at forecast FX:
-   - unconstrained $V_{\text{unc}}=\sum Q^{\text{unc}}P^{\text{net}}$
-   - constrained $V_{\text{con}}$
-   - financial $V_{\text{fin}}$
+   - unconstrained $\mathit{V}_{\text{unc}}=\sum Q^{\text{unc}}P^{\text{net}}$
+   - constrained $\mathit{V}_{\text{con}}$
+   - financial $\mathit{V}_{\text{fin}}$
 5. **Gap and status** per reconciliation cell and total:
-   - gap $=V_{\text{unc}}-V_{\text{fin}}$; gap% = gap / $V_{\text{fin}}$
+   - gap $=V_{\text{unc}}-V_{\text{fin}}$; gap% = gap / $\mathit{V}_{\text{fin}}$
    - $\lvert\text{gap\%}\rvert>2\%$ → ESCALATE
-   - $V_{\text{fin}}=0$ with $V_{\text{unc}}>0$ → ESCALATE (`NO_FIN_PLAN`)
+   - $\mathit{V}_{\text{fin}}=0$ with $\mathit{V}_{\text{unc}}>0$ → ESCALATE (`NO_FIN_PLAN`)
 6. **Bridge:**
    - If finance supplies item-level qty and price, run full PVM (GS-G-07) at item level within each cell, then FX and calendar lines.
    - If finance supplies value only, the bridge is Plan → Demand value with a single `UNEXPLAINED_NO_FIN_DETAIL` line, flagged.
    - Assert the exact sum.
-7. **Supply view:** revenue at risk $=\sum (Q^{\text{unc}}-Q^{\text{con}})^+P^{\text{net}}$ per cell. Report $V_{\text{con}}$ vs. $V_{\text{fin}}$ separately. This gap is a supply decision (`nextq-supply-demand-balancing`), not a demand change.
+7. **Supply view:** revenue at risk $=\sum (Q^{\text{unc}}-Q^{\text{con}})^+P^{\text{net}}$ per cell. Report $\mathit{V}_{\text{con}}$ vs. $\mathit{V}_{\text{fin}}$ separately. This gap is a supply decision (`nextq-supply-demand-balancing`), not a demand change.
 8. **Anti-plugging check:**
    - Compare this cycle's consensus to last cycle's.
    - Volume change without approved reason codes (override log) above 1% of cell value [RoT], **and** a gap that moved from outside to inside tolerance → `PLUGGING_SUSPECTED`. The cell is escalated with the before/after.
@@ -148,11 +148,11 @@ def weeks_to_fiscal_months(weekly, calendar):
     assert abs(out.qty.sum() - weekly.qty.sum()) <= 1e-9 * max(weekly.qty.sum(), 1)
     return out
 
-def plugging_suspected(delta_volume_unexplained_pct, gap_before_pct, gap_after_pct, tol=0.02):
+def plugging_suspected(delta_volume_unexplained_pct, gap_before_pct, gap_after_pct, tol=0.02, min_delta=0.01):
     """Volume moved without reason codes and the gap closed to within tolerance -> PLUGGING_SUSPECTED."""
-    return delta_volume_unexplained_pct > 0 and abs(gap_before_pct) > tol and abs(gap_after_pct) <= tol
+    return delta_volume_unexplained_pct > min_delta and abs(gap_before_pct) > tol and abs(gap_after_pct) <= tol
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - **Net price:** 10 − 1.0 − 0.5 − 0.3 = **8.2**.
 - **PVM**, plan {A 100 @ 10, B 50 @ 20, C 20 @ 5} vs. forecast {A 110 @ 10.5, B 40 @ 20, D (new) 30 @ 8}:
   - V0 = 2,100, V1 = 2,195
@@ -238,9 +238,9 @@ Plan version IDs, price list snapshot, FX table, calendar version, mapping versi
 
 ## 7. Edge Cases
 - **Finance plans in a different UoM or at gross price:** convert to base UoM and the same gross-to-net basis before comparing, or the gap is meaningless (`BASIS_MISMATCH`).
-- **Returns and credits:** if finance plans net of returns, apply the planned return rate to $Q$ as a separate line (`RETURNS`). Never net it into the demand plan.
+- **Returns and credits:** if finance plans net of returns, apply the planned return rate to $\mathit{Q}$ as a separate line (`RETURNS`). Never net it into the demand plan.
 - **Retroactive rebates or price increases** effective mid-period: split the period by validity dates (day-weighted) and log it.
 - **Negative gap concentrated in one item:** drill the PVM to item level and show the top 10 contributors.
-- **Volume with zero total** in plan or forecast at a cell ($Q_0=0$ or $Q_1=0$): mix shares are undefined. Report the whole value change as volume (NEW or DISC cell) and skip the mix line.
+- **Volume with zero total** in plan or forecast at a cell ($\mathit{Q}_0=0$ or $\mathit{Q}_1=0$): mix shares are undefined. Report the whole value change as volume (NEW or DISC cell) and skip the mix line.
 - **Multiple financial plan versions** (AOP vs. latest estimate): reconcile against the version declared in metadata; show the other as a reference column.
 - **Intercompany or transfer pricing:** use external customer net price only. Intercompany volume is excluded and flagged.

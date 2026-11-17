@@ -36,9 +36,9 @@ metadata:
 ## 2. Gold Standard Rules Enforced
 | Rule | Inlined standard |
 |---|---|
-| **GS-M-12** CSL target [STD] | CSL = P(no stockout per replenishment cycle) $=\Phi(k)$, so $k=\Phi^{-1}(\text{CSL})$. $\sigma_{DL}=\sqrt{\bar L\,\sigma_d^2+\bar d^{\,2}\sigma_L^2}$, $\mathit{SS}=k\,\sigma_{DL}$, $\mathit{ROP}=\bar d\,\bar L+SS$. Periodic review (R, S): replace $L$ with $R+L$. **$\sigma_d$ must be the standard deviation of forecast error at the relevant lag and bucket** (e.g. RMSE of lag-L forecasts), **not** the standard deviation of raw demand (Silver, Pyke & Thomas). $\sigma_L=\sigma_1\sqrt L$ only if errors are uncorrelated; otherwise measure errors directly at horizon L. **No normal-k SS** for intermittent or count items (use GS-M-08), or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. |
-| **GS-M-13** Fill rate (β) [STD] | Unit normal loss $G(k)=\phi(k)-k[1-\Phi(k)]$. **(s, Q):** $\beta=1-\sigma_{DL}G(k)/Q$, so solve $G(k)=(1-\beta)Q/\sigma_{DL}$. **(R, S):** $\beta=1-\sigma_{R+L}G(k)/(\bar dR)$. If $k<0$ (large Q), SS may be negative: floor it at the policy minimum and report it. **Never equate CSL and fill rate**; the same $k$ gives different values of each. |
-| **GS-M-08** Count / intermittent | Small counts (max ≤ 10 per period or zero share ≥ 30% [RoT], the same rule as `nextq-intermittent-demand-forecasting`) or ADI ≥ 1.32 use a lead-time demand **distribution**: Poisson if VMR ≤ 1.2; otherwise NB with per-period size $r=\mu^2/(\sigma^2-\mu)$ scaled by the protection interval. Fit on non-censored, non-structural periods. Structural zeros are excluded. |
+| **GS-M-12** CSL target [STD] | CSL = P(no stockout per replenishment cycle) $=\Phi(k)$, so $\mathit{k}=\Phi^{-1}(\text{CSL})$. $\sigma_{DL}=\sqrt{\bar L\,\sigma_d^2+\bar d^{\,2}\sigma_L^2}$, $\mathit{SS}=k\,\sigma_{DL}$, $\mathit{ROP}=\bar d\,\bar L+\mathit{SS}$. Periodic review (R, S): replace $\mathit{L}$ with $\mathit{R}+L$. **$\sigma_d$ must be the standard deviation of forecast error at the relevant lag and bucket** (e.g. RMSE of lag-L forecasts), **not** the standard deviation of raw demand (Silver, Pyke & Thomas). $\sigma_{e,L}=\sigma_{e,1}\sqrt L$ only if errors are uncorrelated; otherwise measure errors directly at horizon L. **No normal-k SS** for intermittent or count items (use GS-M-08), or when $\sigma_{DL}/\mu_{DL}>0.5$ [RoT]. |
+| **GS-M-13** Fill rate (β) [STD] | Unit normal loss $\mathit{G}(k)=\phi(k)-k[1-\Phi(k)]$. **(s, Q):** $\beta=1-\sigma_{DL}G(k)/Q$, so solve $\mathit{G}(k)=(1-\beta)Q/\sigma_{DL}$. **(R, S):** $\beta=1-\sigma_{R+L}G(k)/(\bar dR)$. If $\mathit{k}<0$ (large Q), SS may be negative: floor it at the policy minimum and report it. **Never equate CSL and fill rate**; the same $\mathit{k}$ gives different values of each. |
+| **GS-M-08** Count / intermittent | Small counts (max ≤ 10 per period or zero share ≥ 30% [RoT], the same rule as `nextq-intermittent-demand-forecasting`) or ADI ≥ 1.32 use a lead-time demand **distribution**: Poisson if VMR ≤ 1.2; otherwise NB with per-period size $\mathit{r}=\mu^2/(\sigma^2-\mu)$ scaled by the protection interval. Fit on non-censored, non-structural periods. Structural zeros are excluded. |
 | **GS-M-10** Probabilistic | SS for non-normal cases is a **quantile of the lead-time demand distribution** (sum of sample paths, not summed quantiles). |
 | **GS-M-11** Censoring | Forecast errors are measured against **unconstrained** actuals (`nextq-unconstrained-demand-reconstruction`). Errors against stockout-truncated sales understate $\sigma$ and feed the under-stocking loop. More than 30% reconstructed → `LOW_CONFIDENCE`. |
 | **GS-K-08 / GS-K-09** | Planned CSL $=\Phi(k)$ (cycle qualifier always stated). Unit fill rate = units filled from stock on first pass / units **demanded** (unconstrained). Both are reported for every policy. |
@@ -64,10 +64,10 @@ metadata:
 | `history_clean` | `item_id, location_id, period, demand_clean, period_state` | for count fits |
 | `costs` | `unit_cost, holding_rate` | investment |
 
-**Units:** lead time in the forecast bucket. Day-based lead times are converted as $L_{\text{weeks}}=L_{\text{days}}/7$, keeping the fraction (`nextq-time-bucket-calendar-alignment`).
+**Units:** lead time in the forecast bucket. Day-based lead times are converted as $\mathit{L}_{\text{weeks}}=L_{\text{days}}/7$, keeping the fraction (`nextq-time-bucket-calendar-alignment`).
 
 ## 4. Execution Workflow
-1. **Assemble the protection interval:** PI = L (continuous review) or R + L (periodic). $\mu_{DL}=\sum_{t\in PI}F_t$.
+1. **Assemble the protection interval:** PI = L (continuous review) or R + L (periodic). $\mu_{DL}=\sum_{t\in \mathit{PI}}F_t$.
 2. **Error σ** per the rules above, and the censoring share.
 3. **$\sigma_{DL}$** $=\sqrt{\bar L\sigma_d^2+\bar d^2\sigma_L^2}$ (per-period σ_d). With the direct method, the measured cumulative-error σ replaces the $\bar L\sigma_d^2$ term; the lead-time variability term is added separately.
 4. **Route:**
@@ -79,14 +79,14 @@ metadata:
 
    | Route | CSL target | Fill-rate target |
    |---|---|---|
-   | NORMAL | $k=\Phi^{-1}(\text{CSL})$, SS $=k\sigma_{DL}$ | solve $G(k)$ for (s, Q) or (R, S) |
-   | COUNT_DIST | smallest $s$ with $P(X\le s)\ge$ CSL; SS $=s-\mu$ | smallest $s$ with $1-E[(X-s)^+]/Q\ge\beta$ |
+   | NORMAL | $\mathit{k}=\Phi^{-1}(\text{CSL})$, SS $=k\sigma_{DL}$ | solve $\mathit{G}(k)$ for (s, Q) or (R, S) |
+   | COUNT_DIST | smallest $\mathit{s}$ with $\mathit{P}(X\le s)\ge$ CSL; SS $=s-\mu$ | smallest $\mathit{s}$ with $1-E[(X-s)^+]/Q\ge\beta$ (s,Q), or $/(\bar d R)$ for (R,S) |
    | GAMMA_OR_EMPIRICAL | quantile minus mean | expected shortage computed from the distribution |
 
 7. **Constraints:**
    - SS ≥ `min_ss`, and SS ≥ 0 unless negative SS is allowed by policy (report it).
    - ROP + Q must not exceed `max_days` × daily forecast (shelf life). If it does → `SHELF_LIFE_BOUND`, and report the achievable service.
-8. **Report both service measures:** for every result, the implied CSL and the implied fill rate (e.g. a fill-rate-based $k$ → CSL $=\Phi(k)$).
+8. **Report both service measures:** for every result, the implied CSL and the implied fill rate (e.g. a fill-rate-based $\mathit{k}$ → CSL $=\Phi(k)$).
 9. **Spot check:**
    - Monte Carlo lead-time demand (forecast + error σ, empirical L distribution, 200,000 draws, seed fixed).
    - If |simulated − target| > 2 pp, replace the ROP with the simulated quantile (`CLOSED_FORM_MISMATCH`). This is typical with skewed or bimodal lead times.
@@ -175,7 +175,7 @@ def rop_by_simulation(csl, d_mean, sd_d, L_values, L_probs, n=200_000, seed=7):
     ltd = rng.normal(d_mean * L, sd_d * np.sqrt(L))
     return float(np.quantile(ltd, csl))
 ```
-**Test vector** (executed):
+**Test vector** (verified):
 - **Error σ:**
   - White-noise errors (σ = 20, n = 52) over L = 4 → **43.17**, `SQRT_L`.
   - AR(1) errors with ρ = 0.7 → `ERROR_AUTOCORR` (49.26, must move to the direct method).
